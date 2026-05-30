@@ -1,0 +1,9 @@
+rootProject.name = 'dropify'
+
+include 'app'
+include 'common'
+include 'user'
+include 'product'
+include 'order'
+include 'payment'
+include 'notification'
