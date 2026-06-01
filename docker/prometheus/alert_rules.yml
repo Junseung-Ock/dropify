@@ -1,0 +1,116 @@
+groups:
+  - name: dropify_order_alerts
+    interval: 30s
+    rules:
+      # 주문 API 5xx 에러율이 5%를 초과할 때
+      - alert: OrderErrorRateHigh
+        expr: |
+          (
+            rate(http_server_requests_seconds_count{
+              application="dropify",
+              uri=~"/api/orders.*",
+              outcome="SERVER_ERROR"
+            }[5m])
+            /
+            rate(http_server_requests_seconds_count{
+              application="dropify",
+              uri=~"/api/orders.*"
+            }[5m])
+          ) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          service: order
+        annotations:
+          summary: "주문 API 에러율 임계치 초과"
+          description: |
+            주문 API 에러율이 {{ $value | humanizePercentage }} 로
+            임계치(5%)를 2분 이상 초과했습니다.
+            Instance: {{ $labels.instance }}
+
+      # 주문 API 응답 시간 P99가 2초를 초과할 때
+      - alert: OrderLatencyHigh
+        expr: |
+          histogram_quantile(0.99,
+            rate(http_server_requests_seconds_bucket{
+              application="dropify",
+              uri=~"/api/orders.*"
+            }[5m])
+          ) > 2.0
+        for: 3m
+        labels:
+          severity: warning
+          service: order
+        annotations:
+          summary: "주문 API 응답 지연 감지"
+          description: |
+            주문 API P99 응답 시간이 {{ $value | humanizeDuration }} 입니다.
+            Instance: {{ $labels.instance }}
+
+  - name: dropify_kafka_alerts
+    interval: 30s
+    rules:
+      # Kafka 컨슈머 그룹 lag이 1000을 초과할 때
+      # Spring Kafka + Micrometer 메트릭: kafka.consumer.fetch-manager.records-lag
+      - alert: KafkaConsumerLagHigh
+        expr: |
+          kafka_consumer_fetch_manager_records_lag{application="dropify"} > 1000
+        for: 5m
+        labels:
+          severity: warning
+          service: kafka
+        annotations:
+          summary: "Kafka 컨슈머 Lag 임계치 초과"
+          description: |
+            컨슈머 그룹 {{ $labels.group_id }} / 토픽 {{ $labels.topic }} 의
+            Lag이 {{ $value }} 으로 임계치(1000)를 초과했습니다.
+
+      # Kafka 컨슈머 lag이 5000을 초과하면 critical
+      - alert: KafkaConsumerLagCritical
+        expr: |
+          kafka_consumer_fetch_manager_records_lag{application="dropify"} > 5000
+        for: 2m
+        labels:
+          severity: critical
+          service: kafka
+        annotations:
+          summary: "Kafka 컨슈머 Lag 위험 수준"
+          description: |
+            컨슈머 그룹 {{ $labels.group_id }} / 토픽 {{ $labels.topic }} 의
+            Lag이 {{ $value }} 으로 위험 수준(5000)을 초과했습니다.
+            메시지 처리가 중단되었을 가능성이 있습니다.
+
+  - name: dropify_infra_alerts
+    interval: 30s
+    rules:
+      # 애플리케이션이 2분 이상 스크랩 되지 않을 때
+      - alert: DropifyAppDown
+        expr: |
+          up{application="dropify"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          service: app
+        annotations:
+          summary: "Dropify 애플리케이션 다운"
+          description: |
+            {{ $labels.instance }} 인스턴스가 2분 이상
+            응답하지 않습니다.
+
+      # JVM 힙 메모리 사용률이 85%를 초과할 때
+      - alert: JvmHeapUsageHigh
+        expr: |
+          (
+            jvm_memory_used_bytes{application="dropify", area="heap"}
+            /
+            jvm_memory_max_bytes{application="dropify", area="heap"}
+          ) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+          service: app
+        annotations:
+          summary: "JVM 힙 메모리 사용률 높음"
+          description: |
+            힙 메모리 사용률이 {{ $value | humanizePercentage }} 입니다.
+            Instance: {{ $labels.instance }}
