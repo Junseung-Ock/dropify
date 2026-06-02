@@ -1,41 +1,23 @@
 spring:
   application:
     name: dropify
-  datasource:
-    url: jdbc:mysql://localhost:3306/dropify?useSSL=false&serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: root
-    password: password
-    driver-class-name: com.mysql.cj.jdbc.Driver
+  profiles:
+    active: local
   jpa:
     hibernate:
       ddl-auto: validate
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
-        format_sql: true
     open-in-view: false
   flyway:
     enabled: true
     locations: classpath:db/migration
-  data:
-    redis:
-      host: localhost
-      port: 6379
-  kafka:
-    bootstrap-servers: localhost:9092
-    consumer:
-      group-id: dropify-group
-      auto-offset-reset: earliest
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-  mail:
+  mail: # 이메일 알림 기능 사용 시 필요
     host: smtp.gmail.com
     port: 587
-    username: ${MAIL_USERNAME:}
-    password: ${MAIL_PASSWORD:}
+    username: ${MAIL_USERNAME:} # 디폴트는 빈 값
+    password: ${MAIL_PASSWORD:} # 디폴트는 빈 값
     properties:
       mail:
         smtp:
@@ -48,9 +30,9 @@ management:
     web:
       exposure:
         include: health, info, prometheus
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
 
 jwt:
@@ -62,8 +44,3 @@ springdoc:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
-
-logging:
-  level:
-    com.dropify: DEBUG
-    org.hibernate.SQL: DEBUG

@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "PowerShell(Remove-Item *)",
-      "Read(//mnt/c/Users/junse/dropify/**)",
-      "Bash(./gradlew build *)"
-    ]
-  }
-}
