@@ -36,8 +36,9 @@ management:
         enabled: true
 
 jwt:
-  secret: ${JWT_SECRET:your-secret-key-here-must-be-at-least-256-bits}
-  expiration: 86400000
+  secret: ${JWT_SECRET:your-secret-key-here-must-be-at-least-256-bits-long}
+  expiration: 900000
+  refresh-expiration: 604800000
 
 springdoc:
   api-docs:
