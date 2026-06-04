@@ -84,6 +84,14 @@ public class AuthService {
         jwtTokenProvider.validateToken(request.getRefreshToken());
 
         Long userId = jwtTokenProvider.extractUserId(request.getRefreshToken());
+
+        RefreshToken saved = refreshTokenRepository.findById(String.valueOf(userId))
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHORIZED));
+
+        if (!saved.getToken().equals(request.getRefreshToken())) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
         refreshTokenRepository.deleteById(String.valueOf(userId));
     }
 
