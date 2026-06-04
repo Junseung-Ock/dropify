@@ -2,6 +2,7 @@ package com.dropify.user.service;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
+import org.springframework.dao.DataIntegrityViolationException;
 import com.dropify.user.domain.entity.RefreshToken;
 import com.dropify.user.domain.entity.User;
 import com.dropify.user.domain.repository.RefreshTokenRepository;
@@ -38,7 +39,11 @@ public class AuthService {
                 .phone(request.getPhone())
                 .build();
 
-        userRepository.save(user);
+        try {
+            userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new BusinessException(ErrorCode.DUPLICATE_EMAIL);
+        }
     }
 
     @Transactional(readOnly = true)
