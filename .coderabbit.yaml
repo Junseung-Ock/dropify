@@ -6,6 +6,9 @@ language: "ko-KR" # Set the language for reviews to Korean
 reviews:
   profile: "chill" # or "assertive"
   request_review_on_pull_request: true
+  base_branches:
+    - main
+    - develop
   auto_review:
     enabled: true
     ignore_paths:
