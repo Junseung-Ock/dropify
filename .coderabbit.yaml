@@ -1,0 +1,23 @@
+# CodeRabbit configuration file
+# For more information, see https://docs.coderabbit.ai/getting-started/configuration
+
+language: "ko-KR" # Set the language for reviews to Korean
+
+reviews:
+  profile: "chill" # or "assertive"
+  request_review_on_pull_request: true
+  auto_review:
+    enabled: true
+    ignore_paths:
+      - "**/test/**"
+      - "**/build/**"
+      - "**/*.md"
+      - "**/*.txt"
+      - "gradlew"
+      - "gradlew.bat"
+  tools:
+    shellcheck:
+      enabled: false
+
+chat:
+  enabled: true
