@@ -19,6 +19,7 @@ public enum ErrorCode {
     INVALID_PASSWORD(HttpStatus.UNAUTHORIZED, "USER_003", "Invalid password"),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "USER_004", "Unauthorized"),
     TOKEN_EXPIRED(HttpStatus.UNAUTHORIZED, "USER_005", "Token expired"),
+    FORBIDDEN(HttpStatus.FORBIDDEN, "USER_006", "Access denied"),
 
     // Product
     PRODUCT_NOT_FOUND(HttpStatus.NOT_FOUND, "PRODUCT_001", "Product not found"),
