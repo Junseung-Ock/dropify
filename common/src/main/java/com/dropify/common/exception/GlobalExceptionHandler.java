@@ -3,7 +3,7 @@ package com.dropify.common.exception;
 import com.dropify.common.response.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
+
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -19,15 +19,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(errorCode.getHttpStatus())
                 .body(ApiResponse.error(errorCode.getCode(), e.getMessage()));
-    }
-
-    @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<ApiResponse<Void>> handleAccessDeniedException(AccessDeniedException e) {
-        log.warn("AccessDeniedException: {}", e.getMessage());
-        ErrorCode errorCode = ErrorCode.FORBIDDEN;
-        return ResponseEntity
-                .status(errorCode.getHttpStatus())
-                .body(ApiResponse.error(errorCode.getCode(), errorCode.getMessage()));
     }
 
     @ExceptionHandler(BindException.class)

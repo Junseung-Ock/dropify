@@ -21,6 +21,7 @@ public class SecurityConfig {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserDetailsServiceImpl userDetailsService;
+    private final CustomAccessDeniedHandler customAccessDeniedHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -42,6 +43,8 @@ public class SecurityConfig {
                                 "/api-docs/**"
                         ).permitAll()
                         .anyRequest().authenticated())
+                .exceptionHandling(ex -> ex
+                        .accessDeniedHandler(customAccessDeniedHandler))
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtTokenProvider, userDetailsService),
                         UsernamePasswordAuthenticationFilter.class);
