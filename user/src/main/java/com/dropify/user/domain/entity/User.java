@@ -2,6 +2,7 @@ package com.dropify.user.domain.entity;
 
 import com.dropify.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -47,6 +48,7 @@ public class User extends BaseEntity {
     }
 
     public void changeRole(UserRole role) {
+        Objects.requireNonNull(role, "role must not be null");
         this.role = role;
     }
 }
