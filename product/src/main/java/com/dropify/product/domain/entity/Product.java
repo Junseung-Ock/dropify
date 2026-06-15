@@ -2,6 +2,7 @@ package com.dropify.product.domain.entity;
 
 import com.dropify.common.entity.BaseEntity;
 import jakarta.persistence.*;
+import java.util.Objects;
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -42,6 +43,13 @@ public class Product extends BaseEntity {
         this.status = ProductStatus.ACTIVE;
     }
 
+    public void update(String name, String description, Long price, int stockQuantity) {
+        this.name = name;
+        this.description = description;
+        this.price = price;
+        this.stockQuantity = stockQuantity;
+    }
+
     public void decreaseStock(int quantity) {
         if (this.stockQuantity < quantity) {
             throw new IllegalStateException("재고가 부족합니다.");
@@ -54,6 +62,7 @@ public class Product extends BaseEntity {
     }
 
     public void changeStatus(ProductStatus status) {
+        Objects.requireNonNull(status, "status must not be null");
         this.status = status;
     }
 }
