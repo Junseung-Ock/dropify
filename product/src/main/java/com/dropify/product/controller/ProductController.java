@@ -9,6 +9,7 @@ import com.dropify.product.dto.response.ProductResponse;
 import com.dropify.product.service.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -37,7 +38,7 @@ public class ProductController {
 
     @GetMapping
     public ApiResponse<Page<ProductResponse>> search(
-            ProductSearchRequest request,
+            @Validated ProductSearchRequest request,
             @PageableDefault(size = 20, sort = "createdAt") Pageable pageable) {
         return ApiResponse.ok(productService.search(request, pageable));
     }

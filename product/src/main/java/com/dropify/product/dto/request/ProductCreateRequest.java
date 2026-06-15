@@ -17,6 +17,7 @@ public class ProductCreateRequest {
     @Min(value = 0, message = "가격은 0 이상이어야 합니다.")
     private Long price;
 
+    @NotNull(message = "재고는 필수입니다.")
     @Min(value = 0, message = "재고는 0 이상이어야 합니다.")
-    private int stockQuantity;
+    private Integer stockQuantity;
 }
