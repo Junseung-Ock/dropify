@@ -4,11 +4,14 @@ import com.dropify.product.domain.entity.Product;
 import com.dropify.product.domain.entity.QProduct;
 import com.dropify.product.dto.request.ProductSearchRequest;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.dsl.ComparableExpressionBase;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
@@ -37,12 +40,16 @@ public class ProductRepositoryCustomImpl implements ProductRepositoryCustom {
             builder.and(product.price.loe(request.getMaxPrice()));
         }
 
+        OrderSpecifier<?>[] orderSpecifiers = pageable.getSort().stream()
+                .map(order -> toOrderSpecifier(order, product))
+                .toArray(OrderSpecifier[]::new);
+
         List<Product> content = queryFactory
                 .selectFrom(product)
                 .where(builder)
                 .offset(pageable.getOffset())
                 .limit(pageable.getPageSize())
-                .orderBy(product.createdAt.desc())
+                .orderBy(orderSpecifiers.length > 0 ? orderSpecifiers : new OrderSpecifier[]{product.createdAt.desc()})
                 .fetch();
 
         long total = Optional.ofNullable(queryFactory
@@ -53,5 +60,16 @@ public class ProductRepositoryCustomImpl implements ProductRepositoryCustom {
                 .orElse(0L);
 
         return new PageImpl<>(content, pageable, total);
+    }
+
+    private OrderSpecifier<?> toOrderSpecifier(Sort.Order order, QProduct product) {
+        ComparableExpressionBase<?> path = switch (order.getProperty()) {
+            case "price" -> product.price;
+            case "name" -> product.name;
+            case "stockQuantity" -> product.stockQuantity;
+            case "updatedAt" -> product.updatedAt;
+            default -> product.createdAt;
+        };
+        return order.isAscending() ? path.asc() : path.desc();
     }
 }

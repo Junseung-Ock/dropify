@@ -70,9 +70,8 @@ public class ProductService {
     @CacheEvict(value = "product", key = "#id")
     @Transactional
     public void delete(Long id) {
-        if (!productRepository.existsById(id)) {
-            throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
-        }
-        productRepository.deleteById(id);
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+        productRepository.delete(product);
     }
 }
