@@ -39,7 +39,7 @@ public class StockSyncRunner implements ApplicationRunner {
 
             if (currentStock.equals(existing)) continue;
 
-            int beforeQty = existing != null ? Integer.parseInt(existing) : 0;
+            int beforeQty = parseOrDefault(existing);
 
             redisTemplate.opsForValue().set(key, currentStock);
 
@@ -56,5 +56,15 @@ public class StockSyncRunner implements ApplicationRunner {
         }
 
         log.info("[StockSyncRunner] 전체 {}개 중 {}개 상품 재고를 Redis에 동기화 완료", products.size(), syncedCount);
+    }
+
+    private int parseOrDefault(String value) {
+        if (value == null) return 0;
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            log.warn("[StockSyncRunner] Redis에 잘못된 재고 값이 있습니다: '{}'", value);
+            return 0;
+        }
     }
 }
