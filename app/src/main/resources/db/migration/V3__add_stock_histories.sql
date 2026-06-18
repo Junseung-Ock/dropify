@@ -13,6 +13,7 @@ CREATE TABLE stock_histories
     reason          VARCHAR(255),
     created_at      DATETIME(6)  NOT NULL,
     PRIMARY KEY (id),
+    CONSTRAINT chk_stock_histories_change_type CHECK (change_type IN ('DECREASE', 'REPLENISH', 'SYNC')),
     CONSTRAINT fk_stock_histories_product FOREIGN KEY (product_id) REFERENCES products (id)
 );
 
