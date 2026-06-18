@@ -47,6 +47,7 @@ class StockServiceTest {
         when(product.getStockQuantity()).thenReturn(10);
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(anyString(), anyString())).thenReturn(true);
 
         try (MockedStatic<TransactionSynchronizationManager> tsm =
                      mockStatic(TransactionSynchronizationManager.class)) {
@@ -60,6 +61,7 @@ class StockServiceTest {
             stockService.decreaseStock(1L, 3);
 
             verify(product).decreaseStock(3);
+            verify(valueOperations).setIfAbsent("stock:1", "10");
             verify(valueOperations).decrement("stock:1", 3L);
         }
     }
@@ -85,6 +87,7 @@ class StockServiceTest {
         StockReplenishRequest request = mock(StockReplenishRequest.class);
         when(request.getQuantity()).thenReturn(5);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.setIfAbsent(anyString(), anyString())).thenReturn(true);
 
         try (MockedStatic<TransactionSynchronizationManager> tsm =
                      mockStatic(TransactionSynchronizationManager.class)) {
@@ -98,6 +101,7 @@ class StockServiceTest {
             StockReplenishResponse response = stockService.replenishStock(1L, request);
 
             verify(product).increaseStock(5);
+            verify(valueOperations).setIfAbsent("stock:1", "15");
             verify(valueOperations).increment("stock:1", 5L);
             assertThat(response.getProductId()).isEqualTo(1L);
             assertThat(response.getCurrentStock()).isEqualTo(15);
