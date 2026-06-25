@@ -28,6 +28,7 @@ public enum ErrorCode {
     // Order
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_001", "Order not found"),
     ORDER_ALREADY_CANCELLED(HttpStatus.CONFLICT, "ORDER_002", "Order already cancelled"),
+    CONCURRENT_ORDER(HttpStatus.CONFLICT, "ORDER_003", "주문이 너무 많습니다. 잠시 후 다시 시도해 주세요."),
 
     // Payment
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_001", "Payment not found"),
