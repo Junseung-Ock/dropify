@@ -5,17 +5,25 @@ import com.dropify.order.domain.entity.OrderItem;
 import com.dropify.order.domain.repository.OrderRepository;
 import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.dto.response.PlaceOrderResponse;
+import com.dropify.common.exception.BusinessException;
+import com.dropify.common.exception.ErrorCode;
 import com.dropify.order.lock.DistributedLock;
+import com.dropify.product.domain.entity.Product;
+import com.dropify.product.domain.repository.ProductRepository;
 import com.dropify.product.service.StockService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 @Service
+@Validated
 @RequiredArgsConstructor
 public class OrderService {
 
     private final OrderRepository orderRepository;
+    private final ProductRepository productRepository;
     private final StockService stockService;
 
     /**
@@ -24,23 +32,28 @@ public class OrderService {
      */
     @DistributedLock(key = "'order:lock:' + #request.productId")
     @Transactional
-    public PlaceOrderResponse placeOrder(Long userId, PlaceOrderRequest request) {
+    public PlaceOrderResponse placeOrder(Long userId, @Valid PlaceOrderRequest request) {
+        Product product = productRepository.findById(request.getProductId())
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        long unitPrice = product.getPrice();
+
         Order order = Order.builder()
                 .userId(userId)
-                .totalAmount(request.getUnitPrice() * request.getQuantity())
+                .totalAmount(unitPrice * request.getQuantity())
                 .build();
 
         OrderItem item = OrderItem.builder()
                 .order(order)
-                .productId(request.getProductId())
+                .productId(product.getId())
                 .quantity(request.getQuantity())
-                .unitPrice(request.getUnitPrice())
+                .unitPrice(unitPrice)
                 .build();
 
         order.addOrderItem(item);
         orderRepository.save(order);
 
-        stockService.decreaseStock(request.getProductId(), request.getQuantity());
+        stockService.decreaseStock(product.getId(), request.getQuantity());
 
         return new PlaceOrderResponse(order);
     }
