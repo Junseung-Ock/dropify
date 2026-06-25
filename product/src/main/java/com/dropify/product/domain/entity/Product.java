@@ -1,6 +1,8 @@
 package com.dropify.product.domain.entity;
 
 import com.dropify.common.entity.BaseEntity;
+import com.dropify.common.exception.BusinessException;
+import com.dropify.common.exception.ErrorCode;
 import jakarta.persistence.*;
 import java.util.Objects;
 import lombok.AccessLevel;
@@ -52,7 +54,7 @@ public class Product extends BaseEntity {
 
     public void decreaseStock(int quantity) {
         if (this.stockQuantity < quantity) {
-            throw new IllegalStateException("재고가 부족합니다.");
+            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
         }
         this.stockQuantity -= quantity;
     }
