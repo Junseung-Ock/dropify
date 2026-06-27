@@ -1,6 +1,8 @@
 package com.dropify.order.domain.entity;
 
 import com.dropify.common.entity.BaseEntity;
+import com.dropify.common.exception.BusinessException;
+import com.dropify.common.exception.ErrorCode;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -59,7 +61,7 @@ public class Order extends BaseEntity {
 
     public void cancel() {
         if (this.status == OrderStatus.CANCELLED) {
-            throw new IllegalStateException("이미 취소된 주문입니다.");
+            throw new BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED);
         }
         this.status = OrderStatus.CANCELLED;
     }
