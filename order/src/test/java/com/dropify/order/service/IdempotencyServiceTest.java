@@ -83,4 +83,16 @@ class IdempotencyServiceTest {
 
         verify(valueOperations).set(eq("idempotency:1:test-key"), eq("{\"orderId\":1}"), any());
     }
+
+    @Test
+    @DisplayName("save() 직렬화 실패 시 예외를 전파하지 않고 Redis 저장을 시도하지 않는다")
+    void save_serializationFails_doesNotThrowAndSkipsRedis() throws JsonProcessingException {
+        PlaceOrderResponse response = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
+        when(objectMapper.writeValueAsString(response)).thenThrow(mock(JsonProcessingException.class));
+
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                () -> idempotencyService.save(1L, "test-key", response));
+
+        verify(redisTemplate, never()).opsForValue();
+    }
 }
