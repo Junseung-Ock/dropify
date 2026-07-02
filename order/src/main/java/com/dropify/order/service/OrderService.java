@@ -1,60 +1,51 @@
 package com.dropify.order.service;
 
-import com.dropify.order.domain.entity.Order;
-import com.dropify.order.domain.entity.OrderItem;
-import com.dropify.order.domain.repository.OrderRepository;
-import com.dropify.order.dto.request.PlaceOrderRequest;
-import com.dropify.order.dto.response.PlaceOrderResponse;
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
-import com.dropify.order.lock.DistributedLock;
-import com.dropify.product.domain.entity.Product;
-import com.dropify.product.domain.repository.ProductRepository;
-import com.dropify.product.service.StockService;
-import jakarta.validation.Valid;
+import com.dropify.order.dto.request.PlaceOrderRequest;
+import com.dropify.order.dto.response.PlaceOrderResponse;
+import com.dropify.order.event.OrderEventPublisher;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 
 @Service
-@Validated
 @RequiredArgsConstructor
 public class OrderService {
 
-    private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
-    private final StockService stockService;
+    private static final String STOCK_KEY = "stock:";
 
-    /**
-     * 분산 락 범위 안에서 주문 생성 + 재고 차감을 처리한다.
-     * key: 'order:lock:{productId}' — 같은 상품에 대한 동시 주문을 직렬화해 재고 초과 판매를 방지한다.
-     */
-    @DistributedLock(key = "'order:lock:' + #request.productId")
-    @Transactional
-    public PlaceOrderResponse placeOrder(Long userId, @Valid PlaceOrderRequest request) {
-        Product product = productRepository.findById(request.getProductId())
-                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+    private final OrderCreationService orderCreationService;
+    private final IdempotencyService idempotencyService;
+    private final OrderEventPublisher orderEventPublisher;
+    private final StringRedisTemplate redisTemplate;
 
-        long unitPrice = product.getPrice();
+    public PlaceOrderResponse placeOrder(Long userId, PlaceOrderRequest request, String idempotencyKey) {
+        // ① 멱등성 키 확인 — 이미 처리된 요청이면 캐시된 응답 반환
+        return idempotencyService.get(userId, idempotencyKey)
+                .orElseGet(() -> processOrder(userId, request, idempotencyKey));
+    }
 
-        Order order = Order.builder()
-                .userId(userId)
-                .totalAmount(unitPrice * request.getQuantity())
-                .build();
+    private PlaceOrderResponse processOrder(Long userId, PlaceOrderRequest request, String idempotencyKey) {
+        // ② Redis 재고 사전 확인 — 명백히 재고 없는 요청 조기 차단
+        checkRedisStock(request.getProductId(), request.getQuantity());
 
-        OrderItem item = OrderItem.builder()
-                .order(order)
-                .productId(product.getId())
-                .quantity(request.getQuantity())
-                .unitPrice(unitPrice)
-                .build();
+        // ③ 락 획득 → DB 재고 최종 검증 → 차감 → 주문 PENDING 생성 → 락 해제
+        PlaceOrderResponse response = orderCreationService.create(userId, request);
 
-        order.addOrderItem(item);
-        orderRepository.save(order);
+        // ④ 멱등성 키에 결과 캐시 (24시간) — Kafka 실패 시 재시도가 중복 주문 생성하지 않도록 먼저 저장
+        idempotencyService.save(userId, idempotencyKey, response);
 
-        stockService.decreaseStock(product.getId(), request.getQuantity());
+        // ⑤ 락 해제 후 payment-request 이벤트 발행
+        orderEventPublisher.publishPaymentRequest(userId, response);
 
-        return new PlaceOrderResponse(order);
+        return response;
+    }
+
+    private void checkRedisStock(Long productId, int quantity) {
+        String stock = redisTemplate.opsForValue().get(STOCK_KEY + productId);
+        if (stock != null && Integer.parseInt(stock) < quantity) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
+        }
     }
 }
