@@ -1,5 +1,7 @@
 package com.dropify.order.controller;
 
+import com.dropify.common.exception.BusinessException;
+import com.dropify.common.exception.ErrorCode;
 import com.dropify.common.response.ApiResponse;
 import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.dto.response.PlaceOrderResponse;
@@ -23,6 +25,9 @@ public class OrderController {
             @RequestHeader("idempotency-key") String idempotencyKey,
             @RequestBody @Valid PlaceOrderRequest request) {
 
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
         Long userId = userDetails.getUser().getId();
         return ApiResponse.ok(orderService.placeOrder(userId, request, idempotencyKey));
     }
