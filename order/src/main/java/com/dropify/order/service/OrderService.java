@@ -2,12 +2,19 @@ package com.dropify.order.service;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
+import com.dropify.order.domain.entity.Order;
+import com.dropify.order.domain.repository.OrderRepository;
 import com.dropify.order.dto.request.PlaceOrderRequest;
+import com.dropify.order.dto.response.OrderDetailResponse;
+import com.dropify.order.dto.response.OrderSummaryResponse;
 import com.dropify.order.dto.response.PlaceOrderResponse;
 import com.dropify.order.event.OrderEventPublisher;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
@@ -15,6 +22,7 @@ public class OrderService {
 
     private static final String STOCK_KEY = "stock:";
 
+    private final OrderRepository orderRepository;
     private final OrderCreationService orderCreationService;
     private final IdempotencyService idempotencyService;
     private final OrderEventPublisher orderEventPublisher;
@@ -40,6 +48,26 @@ public class OrderService {
         orderEventPublisher.publishPaymentRequest(userId, response);
 
         return response;
+    }
+
+    @Transactional(readOnly = true)
+    public Page<OrderSummaryResponse> getMyOrders(Long userId, Pageable pageable) {
+        return orderRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
+                .map(OrderSummaryResponse::new);
+    }
+
+    @Transactional(readOnly = true)
+    public OrderDetailResponse getOrderDetail(Long userId, Long orderId) {
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        return new OrderDetailResponse(order);
+    }
+
+    @Transactional
+    public void cancelOrder(Long userId, Long orderId) {
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        order.cancel();
     }
 
     private void checkRedisStock(Long productId, int quantity) {
