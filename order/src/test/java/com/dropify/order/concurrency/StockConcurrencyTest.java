@@ -1,6 +1,6 @@
 package com.dropify.order.concurrency;
 
-import com.dropify.order.OrderIntegrationTestApplication;
+import com.dropify.order.concurrency.OrderIntegrationTestApplication;
 import com.dropify.order.domain.repository.OrderRepository;
 import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.service.OrderCreationService;

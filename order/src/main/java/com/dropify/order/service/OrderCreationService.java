@@ -8,6 +8,8 @@ import com.dropify.order.domain.repository.OrderRepository;
 import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.dto.response.PlaceOrderResponse;
 import com.dropify.order.lock.DistributedLock;
+import com.dropify.payment.domain.entity.Payment;
+import com.dropify.payment.domain.repository.PaymentRepository;
 import com.dropify.product.domain.entity.Product;
 import com.dropify.product.domain.repository.ProductRepository;
 import com.dropify.product.service.StockService;
@@ -22,12 +24,9 @@ public class OrderCreationService {
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository;
     private final StockService stockService;
+    private final PaymentRepository paymentRepository;
 
-    /**
-     * 분산 락 범위 안에서 DB 재고 최종 검증 → 차감 → 주문 생성을 처리한다.
-     * Redis 사전 확인을 통과한 요청만 여기에 도달하므로,
-     * DB 재고 차감 시 BusinessException(INSUFFICIENT_STOCK) 발생은 극히 드문 경쟁 조건에서만 발생한다.
-     */
+    // 1단계: 분산 락 + 트랜잭션 — 재고 차감, 주문/Payment PENDING 생성 후 즉시 커밋·락 해제
     @DistributedLock(key = "'order:lock:' + #request.productId")
     @Transactional
     public PlaceOrderResponse create(Long userId, PlaceOrderRequest request) {
@@ -49,8 +48,27 @@ public class OrderCreationService {
         order.addOrderItem(item);
         orderRepository.save(order);
 
-        // DB 재고 검증 + 차감 (product.decreaseStock이 부족 시 INSUFFICIENT_STOCK 예외 발생)
         stockService.decreaseStock(product.getId(), request.getQuantity());
+
+        paymentRepository.save(Payment.builder()
+                .orderId(order.getId())
+                .amount(order.getTotalAmount())
+                .build());
+
+        return new PlaceOrderResponse(order);
+    }
+
+    // 2단계: 별도 트랜잭션 — PG 호출 후 주문·결제 상태 확정
+    @Transactional
+    public PlaceOrderResponse finalizePayment(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+
+        // TODO: Toss PG API 호출 자리
+        payment.complete("stub-" + orderId);
+        order.markAsPaid();
 
         return new PlaceOrderResponse(order);
     }
