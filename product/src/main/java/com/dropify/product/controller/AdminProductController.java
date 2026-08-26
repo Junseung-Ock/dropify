@@ -42,8 +42,8 @@ public class AdminProductController {
     }
 
     @DeleteMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable Long id) {
+    public ApiResponse<Void> delete(@PathVariable Long id) {
         productService.delete(id);
+        return ApiResponse.ok();
     }
 }
