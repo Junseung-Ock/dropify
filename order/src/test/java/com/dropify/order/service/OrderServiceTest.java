@@ -9,7 +9,6 @@ import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.dto.response.OrderDetailResponse;
 import com.dropify.order.dto.response.OrderSummaryResponse;
 import com.dropify.order.dto.response.PlaceOrderResponse;
-import com.dropify.order.event.OrderEventPublisher;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -49,9 +48,6 @@ class OrderServiceTest {
     private IdempotencyService idempotencyService;
 
     @Mock
-    private OrderEventPublisher orderEventPublisher;
-
-    @Mock
     private StringRedisTemplate redisTemplate;
 
     @Mock
@@ -80,9 +76,10 @@ class OrderServiceTest {
         }
 
         @Test
-        @DisplayName("멱등성 키 캐시 미스 시 주문을 생성하고 결과를 Redis에 저장한다")
+        @DisplayName("멱등성 키 캐시 미스 시 주문을 생성하고 결제 완료 결과를 Redis에 저장한다")
         void placeOrder_idempotencyKeyMiss_createsOrderAndSaves() {
-            PlaceOrderResponse response = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
+            PlaceOrderResponse pendingResponse = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
+            PlaceOrderResponse paidResponse = new PlaceOrderResponse(1L, OrderStatus.PAID, 10000L);
 
             PlaceOrderRequest request = mock(PlaceOrderRequest.class);
             when(request.getProductId()).thenReturn(1L);
@@ -91,14 +88,16 @@ class OrderServiceTest {
             when(idempotencyService.get(1L, "test-key")).thenReturn(Optional.empty());
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(valueOperations.get("stock:1")).thenReturn("100");
-            when(orderCreationService.create(1L, request)).thenReturn(response);
+            when(orderCreationService.create(1L, request)).thenReturn(pendingResponse);
+            when(orderCreationService.finalizePayment(1L)).thenReturn(paidResponse);
 
             PlaceOrderResponse result = orderService.placeOrder(1L, request, "test-key");
 
             assertThat(result.getOrderId()).isEqualTo(1L);
+            assertThat(result.getStatus()).isEqualTo(OrderStatus.PAID);
             verify(orderCreationService).create(1L, request);
-            verify(idempotencyService).save(1L, "test-key", response);
-            verify(orderEventPublisher).publishPaymentRequest(1L, response);
+            verify(orderCreationService).finalizePayment(1L);
+            verify(idempotencyService).save(1L, "test-key", paidResponse);
         }
 
         @Test
@@ -122,7 +121,8 @@ class OrderServiceTest {
         @Test
         @DisplayName("Redis에 재고 키가 없으면 DB 재고 검증으로 넘어간다")
         void placeOrder_redisStockKeyMissing_proceedsToOrderCreation() {
-            PlaceOrderResponse response = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
+            PlaceOrderResponse pendingResponse = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
+            PlaceOrderResponse paidResponse = new PlaceOrderResponse(1L, OrderStatus.PAID, 10000L);
 
             PlaceOrderRequest request = mock(PlaceOrderRequest.class);
             when(request.getProductId()).thenReturn(1L);
@@ -131,12 +131,15 @@ class OrderServiceTest {
             when(idempotencyService.get(1L, "test-key")).thenReturn(Optional.empty());
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(valueOperations.get("stock:1")).thenReturn(null); // 키 없음
-            when(orderCreationService.create(1L, request)).thenReturn(response);
+            when(orderCreationService.create(1L, request)).thenReturn(pendingResponse);
+            when(orderCreationService.finalizePayment(1L)).thenReturn(paidResponse);
 
             PlaceOrderResponse result = orderService.placeOrder(1L, request, "test-key");
 
             assertThat(result.getOrderId()).isEqualTo(1L);
+            assertThat(result.getStatus()).isEqualTo(OrderStatus.PAID);
             verify(orderCreationService).create(1L, request);
+            verify(orderCreationService).finalizePayment(1L);
         }
     }
 
