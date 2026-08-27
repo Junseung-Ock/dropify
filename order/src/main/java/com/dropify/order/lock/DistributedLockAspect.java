@@ -21,7 +21,7 @@ import java.lang.reflect.Method;
 @Slf4j
 @Aspect
 @Component
-@Order(-1) // StockChangeAspect(@Order(0))보다 먼저 실행 — 락이 가장 바깥 레이어
+@Order(-1) // @Transactional보다 먼저 실행되어 락이 트랜잭션을 감싸도록 보장
 @RequiredArgsConstructor
 public class DistributedLockAspect {
 
