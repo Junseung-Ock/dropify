@@ -23,6 +23,10 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
 
+toss:
+  secret-key: ${TOSS_SECRET_KEY:test_sk_placeholder}
+  webhook-secret: ${TOSS_WEBHOOK_SECRET:}
+
 logging:
   level:
     com.dropify: DEBUG

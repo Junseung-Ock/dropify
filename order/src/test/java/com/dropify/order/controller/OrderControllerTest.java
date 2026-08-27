@@ -5,6 +5,7 @@ import com.dropify.order.domain.entity.OrderStatus;
 import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.dto.response.PlaceOrderResponse;
 import com.dropify.order.service.OrderService;
+import com.dropify.order.service.PaymentService;
 import com.dropify.user.domain.entity.User;
 import com.dropify.user.domain.entity.UserRole;
 import com.dropify.user.security.UserDetailsImpl;
@@ -63,6 +64,9 @@ class OrderControllerTest {
 
     @MockBean
     private OrderService orderService;
+
+    @MockBean
+    private PaymentService paymentService;
 
     @Test
     @DisplayName("idempotency-key가 빈 문자열이면 400을 반환한다")
