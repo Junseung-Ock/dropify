@@ -1,5 +1,7 @@
 package com.dropify.order.controller;
 
+import com.dropify.common.exception.BusinessException;
+import com.dropify.common.exception.ErrorCode;
 import com.dropify.common.response.ApiResponse;
 import com.dropify.order.dto.request.PaymentConfirmRequest;
 import com.dropify.order.dto.request.TossWebhookEvent;
@@ -31,7 +33,12 @@ public class PaymentController {
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestParam String orderId) {
         Long userId = userDetails.getUser().getId();
-        Long id = Long.parseLong(orderId.replace("order-", ""));
+        Long id;
+        try {
+            id = Long.parseLong(orderId.replace("order-", ""));
+        } catch (NumberFormatException e) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
+        }
         paymentService.cancelByUser(userId, id);
         return ApiResponse.ok();
     }
