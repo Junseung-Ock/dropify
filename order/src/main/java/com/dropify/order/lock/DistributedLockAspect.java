@@ -10,7 +10,6 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
-import org.springframework.core.annotation.Order;
 import org.springframework.expression.ExpressionParser;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -21,7 +20,6 @@ import java.lang.reflect.Method;
 @Slf4j
 @Aspect
 @Component
-@Order(-1) // StockChangeAspect(@Order(0))보다 먼저 실행 — 락이 가장 바깥 레이어
 @RequiredArgsConstructor
 public class DistributedLockAspect {
 
