@@ -8,7 +8,6 @@ import com.dropify.order.service.PaymentService;
 import com.dropify.user.security.UserDetailsImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,8 +37,8 @@ public class PaymentController {
     }
 
     @PostMapping("/webhook")
-    public ResponseEntity<Void> webhook(@RequestBody TossWebhookEvent event) {
+    public ApiResponse<Void> webhook(@RequestBody TossWebhookEvent event) {
         paymentService.handleWebhook(event);
-        return ResponseEntity.ok().build();
+        return ApiResponse.ok();
     }
 }
