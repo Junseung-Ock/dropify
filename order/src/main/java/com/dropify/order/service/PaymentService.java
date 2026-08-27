@@ -91,7 +91,7 @@ public class PaymentService {
     }
 
     @Transactional
-    public void cancelByUser(Long orderId) {
+    public void cancelByUser(Long userId, Long orderId) {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
@@ -99,7 +99,7 @@ public class PaymentService {
             return;
         }
 
-        Order order = orderRepository.findById(orderId)
+        Order order = orderRepository.findByIdAndUserId(orderId, userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
         payment.fail();

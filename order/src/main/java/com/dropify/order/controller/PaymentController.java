@@ -28,9 +28,12 @@ public class PaymentController {
     }
 
     @GetMapping("/fail")
-    public ApiResponse<Void> fail(@RequestParam String orderId) {
+    public ApiResponse<Void> fail(
+            @AuthenticationPrincipal UserDetailsImpl userDetails,
+            @RequestParam String orderId) {
+        Long userId = userDetails.getUser().getId();
         Long id = Long.parseLong(orderId.replace("order-", ""));
-        paymentService.cancelByUser(id);
+        paymentService.cancelByUser(userId, id);
         return ApiResponse.ok();
     }
 
