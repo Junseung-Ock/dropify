@@ -59,9 +59,10 @@ public class PaymentService {
             log.info("결제 승인 완료: orderId={}", order.getId());
             return new PaymentConfirmResponse(order, payment);
         } catch (BusinessException e) {
-            payment.fail();
-            order.cancel();
-            rollbackStock(order);
+            if (payment.fail()) {
+                order.cancel();
+                rollbackStock(order);
+            }
             log.warn("결제 실패 처리 완료: orderId={}", order.getId());
             throw e;
         }
@@ -75,14 +76,16 @@ public class PaymentService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
 
         if (order.getStatus() == OrderStatus.PENDING) {
-            payment.fail();
-            order.cancel();
-            rollbackStock(order);
+            if (payment.fail()) {
+                order.cancel();
+                rollbackStock(order);
+            }
         } else if (order.getStatus() == OrderStatus.PAID) {
             tossPaymentClient.cancel(payment.getTossPaymentKey(), "사용자 취소");
-            payment.cancel();
-            order.cancel();
-            rollbackStock(order);
+            if (payment.cancel()) {
+                order.cancel();
+                rollbackStock(order);
+            }
         } else {
             throw new BusinessException(ErrorCode.ORDER_NOT_CANCELLABLE);
         }
@@ -102,10 +105,11 @@ public class PaymentService {
             return;
         }
 
-        payment.fail();
-        order.cancel();
-        rollbackStock(order);
-        log.info("결제창 취소 처리 완료: orderId={}", orderId);
+        if (payment.fail()) {
+            order.cancel();
+            rollbackStock(order);
+            log.info("결제창 취소 처리 완료: orderId={}", orderId);
+        }
     }
 
     @Transactional
@@ -137,20 +141,23 @@ public class PaymentService {
         String status = event.getStatus();
 
         if ("DONE".equals(status) && payment.getStatus() == PaymentStatus.PENDING) {
-            payment.complete(event.getPaymentKey());
-            order.markAsPaid();
-            log.info("웹훅 결제 완료 처리: orderId={}", orderId);
+            if (payment.complete(event.getPaymentKey())) {
+                order.markAsPaid();
+                log.info("웹훅 결제 완료 처리: orderId={}", orderId);
+            }
         } else if (("ABORTED".equals(status) || "EXPIRED".equals(status) || "CANCELED".equals(status))
                 && payment.getStatus() == PaymentStatus.PENDING) {
-            payment.fail();
-            order.cancel();
-            rollbackStock(order);
-            log.warn("웹훅 결제 실패 처리: orderId={}, status={}", orderId, status);
+            if (payment.fail()) {
+                order.cancel();
+                rollbackStock(order);
+                log.warn("웹훅 결제 실패 처리: orderId={}, status={}", orderId, status);
+            }
         } else if ("CANCELED".equals(status) && payment.getStatus() == PaymentStatus.COMPLETED) {
-            payment.cancel();
-            order.cancel();
-            rollbackStock(order);
-            log.warn("웹훅 외부 결제 취소 처리: orderId={}, status={}", orderId, status);
+            if (payment.cancel()) {
+                order.cancel();
+                rollbackStock(order);
+                log.warn("웹훅 외부 결제 취소 처리: orderId={}, status={}", orderId, status);
+            }
         }
     }
 

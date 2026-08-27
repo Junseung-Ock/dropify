@@ -41,17 +41,23 @@ public class Payment extends BaseEntity {
         this.status = PaymentStatus.PENDING;
     }
 
-    public void complete(String tossPaymentKey) {
+    public boolean complete(String tossPaymentKey) {
+        if (this.status != PaymentStatus.PENDING) return false;
         this.tossPaymentKey = tossPaymentKey;
         this.status = PaymentStatus.COMPLETED;
         this.paidAt = LocalDateTime.now();
+        return true;
     }
 
-    public void fail() {
+    public boolean fail() {
+        if (this.status != PaymentStatus.PENDING) return false;
         this.status = PaymentStatus.FAILED;
+        return true;
     }
 
-    public void cancel() {
+    public boolean cancel() {
+        if (this.status != PaymentStatus.COMPLETED) return false;
         this.status = PaymentStatus.CANCELLED;
+        return true;
     }
 }
