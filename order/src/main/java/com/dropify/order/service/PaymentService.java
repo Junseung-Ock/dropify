@@ -129,22 +129,28 @@ public class PaymentService {
         }
 
         Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
-        if (payment == null || payment.getStatus() != PaymentStatus.PENDING) {
-            return;
-        }
+        if (payment == null) return;
 
         Order order = orderRepository.findById(orderId).orElse(null);
         if (order == null) return;
 
-        if ("DONE".equals(event.getStatus())) {
+        String status = event.getStatus();
+
+        if ("DONE".equals(status) && payment.getStatus() == PaymentStatus.PENDING) {
             payment.complete(event.getPaymentKey());
             order.markAsPaid();
             log.info("웹훅 결제 완료 처리: orderId={}", orderId);
-        } else if ("ABORTED".equals(event.getStatus()) || "EXPIRED".equals(event.getStatus())) {
+        } else if (("ABORTED".equals(status) || "EXPIRED".equals(status) || "CANCELED".equals(status))
+                && payment.getStatus() == PaymentStatus.PENDING) {
             payment.fail();
             order.cancel();
             rollbackStock(order);
-            log.warn("웹훅 결제 실패 처리: orderId={}, status={}", orderId, event.getStatus());
+            log.warn("웹훅 결제 실패 처리: orderId={}, status={}", orderId, status);
+        } else if ("CANCELED".equals(status) && payment.getStatus() == PaymentStatus.COMPLETED) {
+            payment.cancel();
+            order.cancel();
+            rollbackStock(order);
+            log.warn("웹훅 외부 결제 취소 처리: orderId={}, status={}", orderId, status);
         }
     }
 
