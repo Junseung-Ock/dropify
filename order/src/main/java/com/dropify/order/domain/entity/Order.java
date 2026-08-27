@@ -63,7 +63,7 @@ public class Order extends BaseEntity {
         if (this.status == OrderStatus.CANCELLED) {
             throw new BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED);
         }
-        if (this.status != OrderStatus.PENDING) {
+        if (this.status != OrderStatus.PENDING && this.status != OrderStatus.PAID) {
             throw new BusinessException(ErrorCode.ORDER_NOT_CANCELLABLE);
         }
         this.status = OrderStatus.CANCELLED;

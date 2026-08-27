@@ -26,7 +26,7 @@ public class OrderCreationService {
     private final StockService stockService;
     private final PaymentRepository paymentRepository;
 
-    // 1단계: 분산 락 + 트랜잭션 — 재고 차감, 주문/Payment PENDING 생성 후 즉시 커밋·락 해제
+    // 분산 락 + 트랜잭션 — 재고 차감, 주문/Payment PENDING 생성 후 즉시 커밋·락 해제
     @DistributedLock(key = "'order:lock:' + #request.productId")
     @Transactional
     public PlaceOrderResponse create(Long userId, PlaceOrderRequest request) {
@@ -54,21 +54,6 @@ public class OrderCreationService {
                 .orderId(order.getId())
                 .amount(order.getTotalAmount())
                 .build());
-
-        return new PlaceOrderResponse(order);
-    }
-
-    // 2단계: 별도 트랜잭션 — PG 호출 후 주문·결제 상태 확정
-    @Transactional
-    public PlaceOrderResponse finalizePayment(Long orderId) {
-        Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-        Payment payment = paymentRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
-
-        // TODO: Toss PG API 호출 자리
-        payment.complete("stub-" + orderId);
-        order.markAsPaid();
 
         return new PlaceOrderResponse(order);
     }

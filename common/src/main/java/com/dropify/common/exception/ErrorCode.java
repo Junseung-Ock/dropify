@@ -29,11 +29,15 @@ public enum ErrorCode {
     ORDER_NOT_FOUND(HttpStatus.NOT_FOUND, "ORDER_001", "Order not found"),
     ORDER_ALREADY_CANCELLED(HttpStatus.CONFLICT, "ORDER_002", "Order already cancelled"),
     CONCURRENT_ORDER(HttpStatus.CONFLICT, "ORDER_003", "주문이 너무 많습니다. 잠시 후 다시 시도해 주세요."),
-    ORDER_NOT_CANCELLABLE(HttpStatus.CONFLICT, "ORDER_004", "PENDING 상태의 주문만 취소할 수 있습니다."),
+    ORDER_NOT_CANCELLABLE(HttpStatus.CONFLICT, "ORDER_004", "취소할 수 없는 상태의 주문입니다."),
 
     // Payment
     PAYMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_001", "Payment not found"),
-    PAYMENT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PAYMENT_002", "Payment processing failed");
+    PAYMENT_FAILED(HttpStatus.INTERNAL_SERVER_ERROR, "PAYMENT_002", "Payment processing failed"),
+    TOSS_API_ERROR(HttpStatus.BAD_GATEWAY, "PAYMENT_003", "Toss API 호출 실패"),
+    PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "PAYMENT_004", "결제 금액이 주문 금액과 일치하지 않습니다"),
+    PAYMENT_ALREADY_PROCESSED(HttpStatus.CONFLICT, "PAYMENT_005", "이미 처리된 결제입니다"),
+    TOSS_CANCEL_ERROR(HttpStatus.BAD_GATEWAY, "PAYMENT_006", "Toss 결제 취소 실패");
 
     private final HttpStatus httpStatus;
     private final String code;
