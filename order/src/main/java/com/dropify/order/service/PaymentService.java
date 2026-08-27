@@ -128,7 +128,7 @@ public class PaymentService {
             return;
         }
 
-        Payment payment = paymentRepository.findByOrderId(orderId).orElse(null);
+        Payment payment = paymentRepository.findByOrderIdWithLock(orderId).orElse(null);
         if (payment == null) return;
 
         Order order = orderRepository.findById(orderId).orElse(null);
