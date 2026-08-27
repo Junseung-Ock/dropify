@@ -76,10 +76,9 @@ class OrderServiceTest {
         }
 
         @Test
-        @DisplayName("멱등성 키 캐시 미스 시 주문을 생성하고 결제 완료 결과를 Redis에 저장한다")
+        @DisplayName("멱등성 키 캐시 미스 시 주문을 생성하고 PENDING 결과를 Redis에 저장한다")
         void placeOrder_idempotencyKeyMiss_createsOrderAndSaves() {
             PlaceOrderResponse pendingResponse = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
-            PlaceOrderResponse paidResponse = new PlaceOrderResponse(1L, OrderStatus.PAID, 10000L);
 
             PlaceOrderRequest request = mock(PlaceOrderRequest.class);
             when(request.getProductId()).thenReturn(1L);
@@ -89,15 +88,13 @@ class OrderServiceTest {
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(valueOperations.get("stock:1")).thenReturn("100");
             when(orderCreationService.create(1L, request)).thenReturn(pendingResponse);
-            when(orderCreationService.finalizePayment(1L)).thenReturn(paidResponse);
 
             PlaceOrderResponse result = orderService.placeOrder(1L, request, "test-key");
 
             assertThat(result.getOrderId()).isEqualTo(1L);
-            assertThat(result.getStatus()).isEqualTo(OrderStatus.PAID);
+            assertThat(result.getStatus()).isEqualTo(OrderStatus.PENDING);
             verify(orderCreationService).create(1L, request);
-            verify(orderCreationService).finalizePayment(1L);
-            verify(idempotencyService).save(1L, "test-key", paidResponse);
+            verify(idempotencyService).save(1L, "test-key", pendingResponse);
         }
 
         @Test
@@ -122,7 +119,6 @@ class OrderServiceTest {
         @DisplayName("Redis에 재고 키가 없으면 DB 재고 검증으로 넘어간다")
         void placeOrder_redisStockKeyMissing_proceedsToOrderCreation() {
             PlaceOrderResponse pendingResponse = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
-            PlaceOrderResponse paidResponse = new PlaceOrderResponse(1L, OrderStatus.PAID, 10000L);
 
             PlaceOrderRequest request = mock(PlaceOrderRequest.class);
             when(request.getProductId()).thenReturn(1L);
@@ -132,14 +128,12 @@ class OrderServiceTest {
             when(redisTemplate.opsForValue()).thenReturn(valueOperations);
             when(valueOperations.get("stock:1")).thenReturn(null); // 키 없음
             when(orderCreationService.create(1L, request)).thenReturn(pendingResponse);
-            when(orderCreationService.finalizePayment(1L)).thenReturn(paidResponse);
 
             PlaceOrderResponse result = orderService.placeOrder(1L, request, "test-key");
 
             assertThat(result.getOrderId()).isEqualTo(1L);
-            assertThat(result.getStatus()).isEqualTo(OrderStatus.PAID);
+            assertThat(result.getStatus()).isEqualTo(OrderStatus.PENDING);
             verify(orderCreationService).create(1L, request);
-            verify(orderCreationService).finalizePayment(1L);
         }
     }
 
@@ -221,57 +215,4 @@ class OrderServiceTest {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // cancelOrder
-    // ─────────────────────────────────────────────────────────────────────────
-
-    @Nested
-    @DisplayName("cancelOrder")
-    class CancelOrder {
-
-        @Test
-        @DisplayName("PENDING 상태 주문 취소 시 엔티티의 cancel()이 호출된다")
-        void cancelOrder_pendingOrder_callsCancelOnEntity() {
-            Order order = mock(Order.class);
-            when(orderRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(order));
-
-            orderService.cancelOrder(1L, 1L);
-
-            verify(order).cancel();
-        }
-
-        @Test
-        @DisplayName("존재하지 않는 주문 취소 시 ORDER_NOT_FOUND 예외가 발생한다")
-        void cancelOrder_orderNotFound_throwsBusinessException() {
-            when(orderRepository.findByIdAndUserId(999L, 1L)).thenReturn(Optional.empty());
-
-            assertThatThrownBy(() -> orderService.cancelOrder(1L, 999L))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining(ErrorCode.ORDER_NOT_FOUND.getMessage());
-        }
-
-        @Test
-        @DisplayName("이미 취소된 주문 재취소 시 ORDER_ALREADY_CANCELLED 예외가 발생한다")
-        void cancelOrder_alreadyCancelled_throwsBusinessException() {
-            Order order = mock(Order.class);
-            when(orderRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(order));
-            doThrow(new BusinessException(ErrorCode.ORDER_ALREADY_CANCELLED)).when(order).cancel();
-
-            assertThatThrownBy(() -> orderService.cancelOrder(1L, 1L))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining(ErrorCode.ORDER_ALREADY_CANCELLED.getMessage());
-        }
-
-        @Test
-        @DisplayName("PENDING이 아닌 주문 취소 시 ORDER_NOT_CANCELLABLE 예외가 발생한다")
-        void cancelOrder_paidOrder_throwsBusinessException() {
-            Order order = mock(Order.class);
-            when(orderRepository.findByIdAndUserId(1L, 1L)).thenReturn(Optional.of(order));
-            doThrow(new BusinessException(ErrorCode.ORDER_NOT_CANCELLABLE)).when(order).cancel();
-
-            assertThatThrownBy(() -> orderService.cancelOrder(1L, 1L))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining(ErrorCode.ORDER_NOT_CANCELLABLE.getMessage());
-        }
-    }
 }

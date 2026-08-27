@@ -55,6 +55,21 @@ public class StockService {
         return new StockReplenishResponse(product.getId(), product.getStockQuantity());
     }
 
+    // 결제 실패 시 호출 — 이미 커밋된 재고 차감을 보상하는 별도 트랜잭션
+    @StockChange(type = StockChangeType.ROLLBACK, reason = "결제 실패 재고 복구")
+    @Transactional
+    public void rollbackStock(Long productId, int quantity) {
+        Product product = findProduct(productId);
+        initRedisKeyIfAbsent(productId, product.getStockQuantity());
+        product.increaseStock(quantity);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                redisTemplate.opsForValue().increment(STOCK_KEY + productId, quantity);
+            }
+        });
+    }
+
     private void initRedisKeyIfAbsent(Long productId, int stockQuantity) {
         redisTemplate.opsForValue().setIfAbsent(STOCK_KEY + productId, String.valueOf(stockQuantity));
     }

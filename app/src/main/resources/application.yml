@@ -40,6 +40,11 @@ jwt:
   expiration: 900000
   refresh-expiration: 604800000
 
+toss:
+  secret-key: ${TOSS_SECRET_KEY}
+  base-url: https://api.tosspayments.com
+  webhook-secret: ${TOSS_WEBHOOK_SECRET:}
+
 springdoc:
   api-docs:
     path: /api-docs

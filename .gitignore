@@ -42,3 +42,6 @@ CLAUDE.md
 
 ### Env ###
 .env
+
+### Local test files ###
+front.html
