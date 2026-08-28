@@ -5,7 +5,8 @@ import com.dropify.order.domain.entity.OrderStatus;
 import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.dto.response.PlaceOrderResponse;
 import com.dropify.order.service.OrderService;
-import com.dropify.order.service.PaymentService;
+import com.dropify.order.usecase.CancelOrderUseCase;
+import com.dropify.order.usecase.PlaceOrderUseCase;
 import com.dropify.user.domain.entity.User;
 import com.dropify.user.domain.entity.UserRole;
 import com.dropify.user.security.UserDetailsImpl;
@@ -66,7 +67,10 @@ class OrderControllerTest {
     private OrderService orderService;
 
     @MockBean
-    private PaymentService paymentService;
+    private PlaceOrderUseCase placeOrderUseCase;
+
+    @MockBean
+    private CancelOrderUseCase cancelOrderUseCase;
 
     @Test
     @DisplayName("idempotency-key가 빈 문자열이면 400을 반환한다")
@@ -100,7 +104,7 @@ class OrderControllerTest {
         context.setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
         SecurityContextHolder.setContext(context);
 
-        when(orderService.placeOrder(eq(1L), any(PlaceOrderRequest.class), eq("valid-uuid")))
+        when(placeOrderUseCase.execute(eq(1L), any(PlaceOrderRequest.class), eq("valid-uuid")))
                 .thenReturn(new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L));
 
         mockMvc.perform(post("/api/orders")
