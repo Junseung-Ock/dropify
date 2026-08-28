@@ -36,6 +36,12 @@ public class ProductService {
         return productMapper.toResponse(productRepository.save(product));
     }
 
+    @Transactional(readOnly = true)
+    public Product getEntityById(Long id) {
+        return productRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+    }
+
     @Cacheable(value = "product", key = "#id")
     @Transactional(readOnly = true)
     public ProductResponse getById(Long id) {

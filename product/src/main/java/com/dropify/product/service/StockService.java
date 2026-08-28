@@ -70,6 +70,13 @@ public class StockService {
         });
     }
 
+    public void checkRedisStock(Long productId, int quantity) {
+        String stock = redisTemplate.opsForValue().get(STOCK_KEY + productId);
+        if (stock != null && Integer.parseInt(stock) < quantity) {
+            throw new BusinessException(ErrorCode.INSUFFICIENT_STOCK);
+        }
+    }
+
     private void initRedisKeyIfAbsent(Long productId, int stockQuantity) {
         redisTemplate.opsForValue().setIfAbsent(STOCK_KEY + productId, String.valueOf(stockQuantity));
     }
