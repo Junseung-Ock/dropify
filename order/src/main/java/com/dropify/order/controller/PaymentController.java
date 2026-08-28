@@ -6,7 +6,9 @@ import com.dropify.common.response.ApiResponse;
 import com.dropify.order.dto.request.PaymentConfirmRequest;
 import com.dropify.order.dto.request.TossWebhookEvent;
 import com.dropify.order.dto.response.PaymentConfirmResponse;
-import com.dropify.order.service.PaymentService;
+import com.dropify.order.usecase.CancelOrderUseCase;
+import com.dropify.order.usecase.HandleWebhookUseCase;
+import com.dropify.order.usecase.PaymentConfirmUseCase;
 import com.dropify.user.security.UserDetailsImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -18,14 +20,16 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class PaymentController {
 
-    private final PaymentService paymentService;
+    private final PaymentConfirmUseCase paymentConfirmUseCase;
+    private final CancelOrderUseCase cancelOrderUseCase;
+    private final HandleWebhookUseCase handleWebhookUseCase;
 
     @PostMapping("/confirm")
     public ApiResponse<PaymentConfirmResponse> confirm(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
             @RequestBody @Valid PaymentConfirmRequest request) {
         Long userId = userDetails.getUser().getId();
-        return ApiResponse.ok(paymentService.confirm(userId, request));
+        return ApiResponse.ok(paymentConfirmUseCase.confirm(userId, request));
     }
 
     @GetMapping("/fail")
@@ -39,13 +43,13 @@ public class PaymentController {
         } catch (NumberFormatException e) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE);
         }
-        paymentService.cancelByUser(userId, id);
+        cancelOrderUseCase.cancelByUser(userId, id);
         return ApiResponse.ok();
     }
 
     @PostMapping("/webhook")
     public ApiResponse<Void> webhook(@RequestBody TossWebhookEvent event) {
-        paymentService.handleWebhook(event);
+        handleWebhookUseCase.handle(event);
         return ApiResponse.ok();
     }
 }
