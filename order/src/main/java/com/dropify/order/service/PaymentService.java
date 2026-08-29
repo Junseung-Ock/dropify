@@ -2,6 +2,7 @@ package com.dropify.order.service;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
+import com.dropify.order.exception.PaymentConfirmFailedException;
 import com.dropify.order.domain.entity.Order;
 import com.dropify.order.domain.entity.OrderStatus;
 import com.dropify.order.domain.repository.OrderRepository;
@@ -68,8 +69,9 @@ public class PaymentService {
         } catch (BusinessException e) {
             if (payment.fail()) {
                 order.cancel();
+                log.warn("결제 실패 처리 완료: orderId={}", order.getId());
+                throw new PaymentConfirmFailedException(e.getErrorCode());
             }
-            log.warn("결제 실패 처리 완료: orderId={}", order.getId());
             throw e;
         }
     }

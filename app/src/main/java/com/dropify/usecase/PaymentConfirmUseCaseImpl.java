@@ -1,6 +1,6 @@
 package com.dropify.usecase;
 
-import com.dropify.common.exception.BusinessException;
+import com.dropify.order.exception.PaymentConfirmFailedException;
 import com.dropify.order.dto.request.PaymentConfirmRequest;
 import com.dropify.order.dto.response.PaymentConfirmResponse;
 import com.dropify.order.service.OrderService;
@@ -20,11 +20,11 @@ public class PaymentConfirmUseCaseImpl implements PaymentConfirmUseCase {
     private final StockService stockService;
 
     @Override
-    @Transactional(noRollbackFor = BusinessException.class)
+    @Transactional(noRollbackFor = PaymentConfirmFailedException.class)
     public PaymentConfirmResponse confirm(Long userId, PaymentConfirmRequest request) {
         try {
             return paymentService.confirm(userId, request);
-        } catch (BusinessException e) {
+        } catch (PaymentConfirmFailedException e) {
             orderService.getOrderItems(request.getOrderId()).forEach(item ->
                     stockService.rollbackStock(item.getProductId(), item.getQuantity()));
             throw e;
