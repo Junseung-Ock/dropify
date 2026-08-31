@@ -4,7 +4,7 @@ import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.dto.response.PlaceOrderResponse;
 import com.dropify.common.lock.DistributedLock;
 import com.dropify.order.service.OrderCreationService;
-import com.dropify.order.service.PaymentService;
+import com.dropify.payment.service.PaymentService;
 import com.dropify.product.domain.entity.Product;
 import com.dropify.product.service.ProductService;
 import com.dropify.product.service.StockService;

@@ -4,7 +4,7 @@ import com.dropify.order.exception.PaymentConfirmFailedException;
 import com.dropify.order.dto.request.PaymentConfirmRequest;
 import com.dropify.order.dto.response.PaymentConfirmResponse;
 import com.dropify.order.service.OrderService;
-import com.dropify.order.service.PaymentService;
+import com.dropify.payment.service.PaymentService;
 import com.dropify.order.usecase.PaymentConfirmUseCase;
 import com.dropify.product.service.StockService;
 import lombok.RequiredArgsConstructor;

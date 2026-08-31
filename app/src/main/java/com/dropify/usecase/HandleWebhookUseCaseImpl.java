@@ -2,7 +2,7 @@ package com.dropify.usecase;
 
 import com.dropify.order.dto.request.TossWebhookEvent;
 import com.dropify.order.service.OrderService;
-import com.dropify.order.service.PaymentService;
+import com.dropify.payment.service.PaymentService;
 import com.dropify.order.usecase.HandleWebhookUseCase;
 import com.dropify.product.service.StockService;
 import lombok.RequiredArgsConstructor;

@@ -1,4 +1,4 @@
-package com.dropify.order.service;
+package com.dropify.payment.service;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
@@ -65,7 +65,7 @@ public class PaymentService {
             payment.complete(tossResponse.getPaymentKey());
             order.markAsPaid();
             log.info("결제 승인 완료: orderId={}", order.getId());
-            return new PaymentConfirmResponse(order, payment);
+            return new PaymentConfirmResponse(order, payment.getAmount(), payment.getPaidAt());
         } catch (BusinessException e) {
             if (payment.fail()) {
                 order.cancel();

@@ -2,7 +2,6 @@ package com.dropify.order.dto.response;
 
 import com.dropify.order.domain.entity.Order;
 import com.dropify.order.domain.entity.OrderStatus;
-import com.dropify.payment.domain.entity.Payment;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
@@ -14,10 +13,10 @@ public class PaymentConfirmResponse {
     private final Long amount;
     private final LocalDateTime paidAt;
 
-    public PaymentConfirmResponse(Order order, Payment payment) {
+    public PaymentConfirmResponse(Order order, Long amount, LocalDateTime paidAt) {
         this.orderId = order.getId();
         this.orderStatus = order.getStatus();
-        this.amount = payment.getAmount();
-        this.paidAt = payment.getPaidAt();
+        this.amount = amount;
+        this.paidAt = paidAt;
     }
 }
