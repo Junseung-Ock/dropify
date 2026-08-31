@@ -1,4 +1,4 @@
-package com.dropify.order.service;
+package com.dropify.web.service;
 
 import com.dropify.order.domain.entity.OrderStatus;
 import com.dropify.order.dto.response.PlaceOrderResponse;

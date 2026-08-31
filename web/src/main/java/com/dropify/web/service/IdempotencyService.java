@@ -1,4 +1,4 @@
-package com.dropify.order.service;
+package com.dropify.web.service;
 
 import com.dropify.order.dto.response.PlaceOrderResponse;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -22,8 +22,6 @@ public class IdempotencyService {
     private static final String PROCESSING = "__PROCESSING__";
 
     private final StringRedisTemplate redisTemplate;
-    // Redis는 문자열만 저장할 수 있어서, PlaceOrderResponse 객체를 바로 넣을 수 없음
-    // StringRedisTemplate + ObjectMapper 조합으로 객체를 JSON 문자열로 변환해서 저장하고, 꺼낼 때 다시 객체로 복원
     private final ObjectMapper objectMapper;
 
     public Optional<PlaceOrderResponse> get(Long userId, String idempotencyKey) {
