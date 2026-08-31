@@ -5,7 +5,7 @@ import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.dto.response.PlaceOrderResponse;
 import com.dropify.order.service.OrderCreationService;
 import com.dropify.payment.service.PaymentService;
-import com.dropify.order.usecase.PlaceOrderUseCase;
+import com.dropify.web.usecase.PlaceOrderUseCaseImpl;
 import com.dropify.payment.domain.repository.PaymentRepository;
 import com.dropify.product.domain.entity.Product;
 import com.dropify.product.domain.repository.ProductRepository;
@@ -98,7 +98,7 @@ class PlaceOrderConcurrencyTest {
         registry.add("spring.data.redis.port", () -> redis.getMappedPort(6379));
     }
 
-    @Autowired private PlaceOrderUseCase placeOrderUseCase;
+    @Autowired private PlaceOrderUseCaseImpl placeOrderUseCaseImpl;
     @Autowired private NoLockPlaceOrderProcessor noLockPlaceOrderProcessor;
     @Autowired private ProductRepository productRepository;
     @Autowired private OrderRepository orderRepository;
@@ -144,7 +144,7 @@ class PlaceOrderConcurrencyTest {
                     PlaceOrderRequest request = mock(PlaceOrderRequest.class);
                     when(request.getProductId()).thenReturn(productId);
                     when(request.getQuantity()).thenReturn(1);
-                    placeOrderUseCase.execute(userId, request, idempotencyKey);
+                    placeOrderUseCaseImpl.execute(userId, request, idempotencyKey);
                     successCount.incrementAndGet();
                 } catch (Exception e) {
                     failCount.incrementAndGet();

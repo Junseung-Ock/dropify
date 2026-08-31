@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
                 "com.dropify.product",
                 "com.dropify.order",
                 "com.dropify.payment",
-                "com.dropify.usecase"
+                "com.dropify.web.usecase"
         },
         exclude = {KafkaAutoConfiguration.class}
 )

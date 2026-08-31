@@ -1,4 +1,4 @@
-package com.dropify.order.controller;
+package com.dropify.web.controller;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
@@ -6,10 +6,10 @@ import com.dropify.common.response.ApiResponse;
 import com.dropify.order.dto.request.PaymentConfirmRequest;
 import com.dropify.order.dto.request.TossWebhookEvent;
 import com.dropify.order.dto.response.PaymentConfirmResponse;
-import com.dropify.order.usecase.CancelOrderUseCase;
-import com.dropify.order.usecase.HandleWebhookUseCase;
-import com.dropify.order.usecase.PaymentConfirmUseCase;
 import com.dropify.user.security.UserDetailsImpl;
+import com.dropify.web.usecase.CancelOrderUseCaseImpl;
+import com.dropify.web.usecase.HandleWebhookUseCaseImpl;
+import com.dropify.web.usecase.PaymentConfirmUseCaseImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,9 +20,9 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class PaymentController {
 
-    private final PaymentConfirmUseCase paymentConfirmUseCase;
-    private final CancelOrderUseCase cancelOrderUseCase;
-    private final HandleWebhookUseCase handleWebhookUseCase;
+    private final PaymentConfirmUseCaseImpl paymentConfirmUseCase;
+    private final CancelOrderUseCaseImpl cancelOrderUseCase;
+    private final HandleWebhookUseCaseImpl handleWebhookUseCase;
 
     @PostMapping("/confirm")
     public ApiResponse<PaymentConfirmResponse> confirm(

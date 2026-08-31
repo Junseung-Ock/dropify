@@ -1,4 +1,4 @@
-package com.dropify.product.controller;
+package com.dropify.web.controller;
 
 import com.dropify.product.dto.response.StockReplenishResponse;
 import com.dropify.product.service.StockService;

@@ -1,4 +1,4 @@
-package com.dropify.user.controller;
+package com.dropify.web.controller;
 
 import com.dropify.common.response.ApiResponse;
 import com.dropify.user.dto.request.LoginRequest;

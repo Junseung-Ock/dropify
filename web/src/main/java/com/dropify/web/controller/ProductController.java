@@ -1,14 +1,14 @@
-package com.dropify.product.controller;
+package com.dropify.web.controller;
 
 import com.dropify.common.response.ApiResponse;
 import com.dropify.product.dto.request.ProductSearchRequest;
 import com.dropify.product.dto.response.ProductResponse;
 import com.dropify.product.service.ProductService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController

@@ -1,4 +1,4 @@
-package com.dropify.user.controller;
+package com.dropify.web.controller;
 
 import com.dropify.user.dto.response.TokenResponse;
 import com.dropify.user.service.AuthService;

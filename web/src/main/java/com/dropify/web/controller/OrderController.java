@@ -1,4 +1,4 @@
-package com.dropify.order.controller;
+package com.dropify.web.controller;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
@@ -8,9 +8,9 @@ import com.dropify.order.dto.response.OrderDetailResponse;
 import com.dropify.order.dto.response.OrderSummaryResponse;
 import com.dropify.order.dto.response.PlaceOrderResponse;
 import com.dropify.order.service.OrderService;
-import com.dropify.order.usecase.CancelOrderUseCase;
-import com.dropify.order.usecase.PlaceOrderUseCase;
 import com.dropify.user.security.UserDetailsImpl;
+import com.dropify.web.usecase.CancelOrderUseCaseImpl;
+import com.dropify.web.usecase.PlaceOrderUseCaseImpl;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,8 +25,8 @@ import org.springframework.web.bind.annotation.*;
 public class OrderController {
 
     private final OrderService orderService;
-    private final PlaceOrderUseCase placeOrderUseCase;
-    private final CancelOrderUseCase cancelOrderUseCase;
+    private final PlaceOrderUseCaseImpl placeOrderUseCase;
+    private final CancelOrderUseCaseImpl cancelOrderUseCase;
 
     @PostMapping
     public ApiResponse<PlaceOrderResponse> placeOrder(

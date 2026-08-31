@@ -1,15 +1,15 @@
-package com.dropify.order.controller;
+package com.dropify.web.controller;
 
 import com.dropify.common.exception.GlobalExceptionHandler;
 import com.dropify.order.domain.entity.OrderStatus;
 import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.dto.response.PlaceOrderResponse;
 import com.dropify.order.service.OrderService;
-import com.dropify.order.usecase.CancelOrderUseCase;
-import com.dropify.order.usecase.PlaceOrderUseCase;
 import com.dropify.user.domain.entity.User;
 import com.dropify.user.domain.entity.UserRole;
 import com.dropify.user.security.UserDetailsImpl;
+import com.dropify.web.usecase.CancelOrderUseCaseImpl;
+import com.dropify.web.usecase.PlaceOrderUseCaseImpl;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
@@ -67,10 +67,10 @@ class OrderControllerTest {
     private OrderService orderService;
 
     @MockBean
-    private PlaceOrderUseCase placeOrderUseCase;
+    private PlaceOrderUseCaseImpl placeOrderUseCaseImpl;
 
     @MockBean
-    private CancelOrderUseCase cancelOrderUseCase;
+    private CancelOrderUseCaseImpl cancelOrderUseCaseImpl;
 
     @Test
     @DisplayName("idempotency-key가 빈 문자열이면 400을 반환한다")
@@ -104,7 +104,7 @@ class OrderControllerTest {
         context.setAuthentication(new UsernamePasswordAuthenticationToken(principal, null, principal.getAuthorities()));
         SecurityContextHolder.setContext(context);
 
-        when(placeOrderUseCase.execute(eq(1L), any(PlaceOrderRequest.class), eq("valid-uuid")))
+        when(placeOrderUseCaseImpl.execute(eq(1L), any(PlaceOrderRequest.class), eq("valid-uuid")))
                 .thenReturn(new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L));
 
         mockMvc.perform(post("/api/orders")

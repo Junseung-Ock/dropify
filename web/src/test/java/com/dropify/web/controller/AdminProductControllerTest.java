@@ -1,4 +1,4 @@
-package com.dropify.product.controller;
+package com.dropify.web.controller;
 
 import com.dropify.product.service.ProductService;
 import com.fasterxml.jackson.databind.ObjectMapper;

@@ -1,8 +1,8 @@
-package com.dropify.usecase;
+package com.dropify.web.usecase;
 
+import com.dropify.common.lock.DistributedLock;
 import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.dto.response.PlaceOrderResponse;
-import com.dropify.common.lock.DistributedLock;
 import com.dropify.order.service.OrderCreationService;
 import com.dropify.payment.service.PaymentService;
 import com.dropify.product.domain.entity.Product;

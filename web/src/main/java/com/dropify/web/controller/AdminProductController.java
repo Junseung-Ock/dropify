@@ -1,4 +1,4 @@
-package com.dropify.product.controller;
+package com.dropify.web.controller;
 
 import com.dropify.common.response.ApiResponse;
 import com.dropify.product.domain.entity.ProductStatus;
