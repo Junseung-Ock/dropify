@@ -3,12 +3,11 @@ package com.dropify.order.service;
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
 import com.dropify.order.domain.entity.Order;
+import com.dropify.order.domain.entity.OrderItem;
 import com.dropify.order.domain.entity.OrderStatus;
 import com.dropify.order.domain.repository.OrderRepository;
-import com.dropify.order.dto.request.PlaceOrderRequest;
 import com.dropify.order.dto.response.OrderDetailResponse;
 import com.dropify.order.dto.response.OrderSummaryResponse;
-import com.dropify.order.dto.response.PlaceOrderResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -20,8 +19,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 
 import java.util.Collections;
 import java.util.List;
@@ -29,7 +26,6 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -40,102 +36,6 @@ class OrderServiceTest {
 
     @Mock
     private OrderRepository orderRepository;
-
-    @Mock
-    private OrderCreationService orderCreationService;
-
-    @Mock
-    private IdempotencyService idempotencyService;
-
-    @Mock
-    private StringRedisTemplate redisTemplate;
-
-    @Mock
-    private ValueOperations<String, String> valueOperations;
-
-    // ─────────────────────────────────────────────────────────────────────────
-    // placeOrder
-    // ─────────────────────────────────────────────────────────────────────────
-
-    @Nested
-    @DisplayName("placeOrder")
-    class PlaceOrder {
-
-        @Test
-        @DisplayName("멱등성 키 캐시 히트 시 주문 생성 없이 캐시된 응답을 반환한다")
-        void placeOrder_idempotencyKeyHit_returnsCachedResponse() {
-            PlaceOrderResponse cached = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
-            when(idempotencyService.get(1L, "test-key")).thenReturn(Optional.of(cached));
-
-            PlaceOrderRequest request = mock(PlaceOrderRequest.class);
-            PlaceOrderResponse result = orderService.placeOrder(1L, request, "test-key");
-
-            assertThat(result.getOrderId()).isEqualTo(1L);
-            verify(orderCreationService, never()).create(any(), any());
-            verify(idempotencyService, never()).save(any(), any(), any());
-        }
-
-        @Test
-        @DisplayName("멱등성 키 캐시 미스 시 주문을 생성하고 PENDING 결과를 Redis에 저장한다")
-        void placeOrder_idempotencyKeyMiss_createsOrderAndSaves() {
-            PlaceOrderResponse pendingResponse = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
-
-            PlaceOrderRequest request = mock(PlaceOrderRequest.class);
-            when(request.getProductId()).thenReturn(1L);
-            when(request.getQuantity()).thenReturn(1);
-
-            when(idempotencyService.get(1L, "test-key")).thenReturn(Optional.empty());
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get("stock:1")).thenReturn("100");
-            when(orderCreationService.create(1L, request)).thenReturn(pendingResponse);
-
-            PlaceOrderResponse result = orderService.placeOrder(1L, request, "test-key");
-
-            assertThat(result.getOrderId()).isEqualTo(1L);
-            assertThat(result.getStatus()).isEqualTo(OrderStatus.PENDING);
-            verify(orderCreationService).create(1L, request);
-            verify(idempotencyService).save(1L, "test-key", pendingResponse);
-        }
-
-        @Test
-        @DisplayName("Redis 재고가 부족하면 INSUFFICIENT_STOCK 예외가 발생한다")
-        void placeOrder_insufficientStock_throwsBusinessException() {
-            PlaceOrderRequest request = mock(PlaceOrderRequest.class);
-            when(request.getProductId()).thenReturn(1L);
-            when(request.getQuantity()).thenReturn(5);
-
-            when(idempotencyService.get(1L, "test-key")).thenReturn(Optional.empty());
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get("stock:1")).thenReturn("2");
-
-            assertThatThrownBy(() -> orderService.placeOrder(1L, request, "test-key"))
-                    .isInstanceOf(BusinessException.class)
-                    .hasMessageContaining(ErrorCode.INSUFFICIENT_STOCK.getMessage());
-
-            verify(orderCreationService, never()).create(any(), any());
-        }
-
-        @Test
-        @DisplayName("Redis에 재고 키가 없으면 DB 재고 검증으로 넘어간다")
-        void placeOrder_redisStockKeyMissing_proceedsToOrderCreation() {
-            PlaceOrderResponse pendingResponse = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
-
-            PlaceOrderRequest request = mock(PlaceOrderRequest.class);
-            when(request.getProductId()).thenReturn(1L);
-            when(request.getQuantity()).thenReturn(3);
-
-            when(idempotencyService.get(1L, "test-key")).thenReturn(Optional.empty());
-            when(redisTemplate.opsForValue()).thenReturn(valueOperations);
-            when(valueOperations.get("stock:1")).thenReturn(null); // 키 없음
-            when(orderCreationService.create(1L, request)).thenReturn(pendingResponse);
-
-            PlaceOrderResponse result = orderService.placeOrder(1L, request, "test-key");
-
-            assertThat(result.getOrderId()).isEqualTo(1L);
-            assertThat(result.getStatus()).isEqualTo(OrderStatus.PENDING);
-            verify(orderCreationService).create(1L, request);
-        }
-    }
 
     // ─────────────────────────────────────────────────────────────────────────
     // getMyOrders
@@ -215,4 +115,35 @@ class OrderServiceTest {
         }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // getOrderItems
+    // ─────────────────────────────────────────────────────────────────────────
+
+    @Nested
+    @DisplayName("getOrderItems")
+    class GetOrderItems {
+
+        @Test
+        @DisplayName("주문이 존재하면 해당 주문의 아이템 목록을 반환한다")
+        void getOrderItems_orderExists_returnsItems() {
+            OrderItem item = mock(OrderItem.class);
+            Order order = mock(Order.class);
+            when(order.getOrderItems()).thenReturn(List.of(item));
+            when(orderRepository.findById(1L)).thenReturn(Optional.of(order));
+
+            List<OrderItem> result = orderService.getOrderItems(1L);
+
+            assertThat(result).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("주문이 존재하지 않으면 빈 리스트를 반환한다")
+        void getOrderItems_orderNotFound_returnsEmptyList() {
+            when(orderRepository.findById(999L)).thenReturn(Optional.empty());
+
+            List<OrderItem> result = orderService.getOrderItems(999L);
+
+            assertThat(result).isEmpty();
+        }
+    }
 }

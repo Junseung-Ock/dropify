@@ -73,25 +73,25 @@ class IdempotencyServiceTest {
     }
 
     @Test
-    @DisplayName("save() 호출 시 직렬화 후 Redis에 저장한다")
-    void save_serializesAndStoresInRedis() throws JsonProcessingException {
+    @DisplayName("complete() 호출 시 직렬화 후 Redis에 저장한다")
+    void complete_serializesAndStoresInRedis() throws JsonProcessingException {
         PlaceOrderResponse response = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
         when(objectMapper.writeValueAsString(response)).thenReturn("{\"orderId\":1}");
 
-        idempotencyService.save(1L, "test-key", response);
+        idempotencyService.complete(1L, "test-key", response);
 
         verify(valueOperations).set(eq("idempotency:1:test-key"), eq("{\"orderId\":1}"), any());
     }
 
     @Test
-    @DisplayName("save() 직렬화 실패 시 예외를 전파하지 않고 Redis 저장을 시도하지 않는다")
-    void save_serializationFails_doesNotThrowAndSkipsRedis() throws JsonProcessingException {
+    @DisplayName("complete() 직렬화 실패 시 예외를 전파하지 않고 Redis 저장을 시도하지 않는다")
+    void complete_serializationFails_doesNotThrowAndSkipsRedis() throws JsonProcessingException {
         PlaceOrderResponse response = new PlaceOrderResponse(1L, OrderStatus.PENDING, 10000L);
         when(objectMapper.writeValueAsString(response)).thenThrow(mock(JsonProcessingException.class));
 
         org.junit.jupiter.api.Assertions.assertDoesNotThrow(
-                () -> idempotencyService.save(1L, "test-key", response));
+                () -> idempotencyService.complete(1L, "test-key", response));
 
         verify(redisTemplate, never()).opsForValue();
     }
