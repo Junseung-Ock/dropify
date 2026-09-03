@@ -2,6 +2,8 @@ package com.dropify.payment.service;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
+import com.dropify.event.PaymentCompletedEvent;
+import com.dropify.event.PaymentFailedEvent;
 import com.dropify.order.exception.PaymentConfirmFailedException;
 import com.dropify.order.domain.entity.Order;
 import com.dropify.order.domain.entity.OrderStatus;
@@ -16,6 +18,7 @@ import com.dropify.payment.domain.entity.PaymentStatus;
 import com.dropify.payment.domain.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,6 +33,7 @@ public class PaymentService {
     private final OrderRepository orderRepository;
     private final TossPaymentClient tossPaymentClient;
     private final TossPaymentProperties tossPaymentProperties;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void createPendingPayment(Long orderId, Long amount) {
@@ -65,11 +69,25 @@ public class PaymentService {
             payment.complete(tossResponse.getPaymentKey());
             order.markAsPaid();
             log.info("결제 승인 완료: orderId={}", order.getId());
+
+            eventPublisher.publishEvent(PaymentCompletedEvent.builder()
+                    .orderId(order.getId())
+                    .userId(userId)
+                    .amount(payment.getAmount())
+                    .paidAt(payment.getPaidAt())
+                    .build());
+
             return new PaymentConfirmResponse(order, payment.getAmount(), payment.getPaidAt());
         } catch (BusinessException e) {
             if (payment.fail()) {
                 order.cancel();
                 log.warn("결제 실패 처리 완료: orderId={}", order.getId());
+
+                eventPublisher.publishEvent(PaymentFailedEvent.builder()
+                        .orderId(order.getId())
+                        .userId(userId)
+                        .build());
+
                 throw new PaymentConfirmFailedException(e.getErrorCode());
             }
             throw e;
@@ -97,6 +115,10 @@ public class PaymentService {
         }
 
         log.info("주문 취소 완료: orderId={}, status={}", orderId, order.getStatus());
+        eventPublisher.publishEvent(PaymentFailedEvent.builder()
+                .orderId(orderId)
+                .userId(userId)
+                .build());
     }
 
     // 결제창 취소 시 호출 — PENDING이 아니면 무시, 실제 취소 여부를 반환
@@ -115,6 +137,12 @@ public class PaymentService {
         if (payment.fail()) {
             order.cancel();
             log.info("결제창 취소 처리 완료: orderId={}", orderId);
+
+            eventPublisher.publishEvent(PaymentFailedEvent.builder()
+                    .orderId(orderId)
+                    .userId(userId)
+                    .build());
+
             return true;
         }
 
@@ -154,6 +182,13 @@ public class PaymentService {
             if (payment.complete(event.getPaymentKey())) {
                 order.markAsPaid();
                 log.info("웹훅 결제 완료 처리: orderId={}", orderId);
+
+                eventPublisher.publishEvent(PaymentCompletedEvent.builder()
+                        .orderId(orderId)
+                        .userId(order.getUserId())
+                        .amount(payment.getAmount())
+                        .paidAt(payment.getPaidAt())
+                        .build());
             }
             return Optional.empty();
         } else if (("ABORTED".equals(status) || "EXPIRED".equals(status) || "CANCELED".equals(status))
@@ -161,12 +196,24 @@ public class PaymentService {
             if (payment.fail()) {
                 order.cancel();
                 log.warn("웹훅 결제 실패 처리: orderId={}, status={}", orderId, status);
+
+                eventPublisher.publishEvent(PaymentFailedEvent.builder()
+                        .orderId(orderId)
+                        .userId(order.getUserId())
+                        .build());
+
                 return Optional.of(orderId);
             }
         } else if ("CANCELED".equals(status) && payment.getStatus() == PaymentStatus.COMPLETED) {
             if (payment.cancel()) {
                 order.cancel();
                 log.warn("웹훅 외부 결제 취소 처리: orderId={}, status={}", orderId, status);
+
+                eventPublisher.publishEvent(PaymentFailedEvent.builder()
+                        .orderId(orderId)
+                        .userId(order.getUserId())
+                        .build());
+
                 return Optional.of(orderId);
             }
         }

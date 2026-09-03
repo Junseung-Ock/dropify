@@ -2,6 +2,7 @@ package com.dropify.product.service;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
+import com.dropify.event.StockChangedEvent;
 import com.dropify.product.aop.StockChange;
 import com.dropify.product.domain.entity.Product;
 import com.dropify.product.domain.entity.StockChangeType;
@@ -9,6 +10,7 @@ import com.dropify.product.domain.repository.ProductRepository;
 import com.dropify.product.dto.request.StockReplenishRequest;
 import com.dropify.product.dto.response.StockReplenishResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ public class StockService {
 
     private final ProductRepository productRepository;
     private final StringRedisTemplate redisTemplate;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 주문 모듈에서 호출 — 재고 차감
     @StockChange(type = StockChangeType.DECREASE, reason = "주문 처리")
@@ -31,6 +34,10 @@ public class StockService {
         Product product = findProduct(productId);
         initRedisKeyIfAbsent(productId, product.getStockQuantity());
         product.decreaseStock(quantity);
+        int newQuantity = product.getStockQuantity();
+        eventPublisher.publishEvent(
+                StockChangedEvent.builder().productId(productId).quantity(newQuantity).build()
+        );
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
@@ -46,6 +53,10 @@ public class StockService {
         Product product = findProduct(productId);
         initRedisKeyIfAbsent(productId, product.getStockQuantity());
         product.increaseStock(request.getQuantity());
+        int newQuantity = product.getStockQuantity();
+        eventPublisher.publishEvent(
+                StockChangedEvent.builder().productId(productId).quantity(newQuantity).build()
+        );
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
@@ -62,6 +73,10 @@ public class StockService {
         Product product = findProduct(productId);
         initRedisKeyIfAbsent(productId, product.getStockQuantity());
         product.increaseStock(quantity);
+        int newQuantity = product.getStockQuantity();
+        eventPublisher.publishEvent(
+                StockChangedEvent.builder().productId(productId).quantity(newQuantity).build()
+        );
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
