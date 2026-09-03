@@ -1,0 +1,10 @@
+package com.dropify.event;
+
+public final class KafkaTopic {
+
+    public static final String PAYMENT_COMPLETED = "payment.completed";
+    public static final String PAYMENT_FAILED = "payment.failed";
+    public static final String STOCK_CHANGED = "stock.changed";
+
+    private KafkaTopic() {}
+}
