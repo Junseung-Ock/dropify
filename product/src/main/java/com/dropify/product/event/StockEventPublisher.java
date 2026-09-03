@@ -22,7 +22,7 @@ public class StockEventPublisher {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onStockChanged(StockChangedEvent event) {
         try {
-            kafkaTemplate.send(KafkaTopic.STOCK_CHANGED, objectMapper.writeValueAsString(event));
+            kafkaTemplate.send(KafkaTopic.STOCK_CHANGED, event.getProductId().toString(), objectMapper.writeValueAsString(event));
         } catch (JsonProcessingException e) {
             log.error("재고 변경 이벤트 직렬화 실패: productId={}", event.getProductId(), e);
         }

@@ -2,6 +2,7 @@ package com.dropify.payment.service;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
+import com.dropify.event.OrderCancelledEvent;
 import com.dropify.event.PaymentCompletedEvent;
 import com.dropify.event.PaymentFailedEvent;
 import com.dropify.order.exception.PaymentConfirmFailedException;
@@ -115,7 +116,7 @@ public class PaymentService {
         }
 
         log.info("주문 취소 완료: orderId={}, status={}", orderId, order.getStatus());
-        eventPublisher.publishEvent(PaymentFailedEvent.builder()
+        eventPublisher.publishEvent(OrderCancelledEvent.builder()
                 .orderId(orderId)
                 .userId(userId)
                 .build());
@@ -138,7 +139,7 @@ public class PaymentService {
             order.cancel();
             log.info("결제창 취소 처리 완료: orderId={}", orderId);
 
-            eventPublisher.publishEvent(PaymentFailedEvent.builder()
+            eventPublisher.publishEvent(OrderCancelledEvent.builder()
                     .orderId(orderId)
                     .userId(userId)
                     .build());
@@ -209,7 +210,7 @@ public class PaymentService {
                 order.cancel();
                 log.warn("웹훅 외부 결제 취소 처리: orderId={}, status={}", orderId, status);
 
-                eventPublisher.publishEvent(PaymentFailedEvent.builder()
+                eventPublisher.publishEvent(OrderCancelledEvent.builder()
                         .orderId(orderId)
                         .userId(order.getUserId())
                         .build());
