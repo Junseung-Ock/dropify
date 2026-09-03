@@ -1,6 +1,8 @@
 package com.dropify.web.controller;
 
 import com.dropify.common.response.ApiResponse;
+import com.dropify.notification.dto.response.NotificationResponse;
+import com.dropify.notification.service.NotificationService;
 import com.dropify.payment.dto.response.PaymentHistoryResponse;
 import com.dropify.payment.service.PaymentHistoryService;
 import com.dropify.user.security.UserDetailsImpl;
@@ -18,11 +20,19 @@ import java.util.List;
 public class MypageController {
 
     private final PaymentHistoryService paymentHistoryService;
+    private final NotificationService notificationService;
 
     @GetMapping("/payment-histories")
     public ApiResponse<List<PaymentHistoryResponse>> getPaymentHistories(
             @AuthenticationPrincipal UserDetailsImpl userDetails) {
         Long userId = userDetails.getUser().getId();
         return ApiResponse.ok(paymentHistoryService.getHistories(userId));
+    }
+
+    @GetMapping("/notifications")
+    public ApiResponse<List<NotificationResponse>> getNotifications(
+            @AuthenticationPrincipal UserDetailsImpl userDetails) {
+        Long userId = userDetails.getUser().getId();
+        return ApiResponse.ok(notificationService.getNotifications(userId));
     }
 }
