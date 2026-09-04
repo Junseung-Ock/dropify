@@ -7,6 +7,7 @@ import com.dropify.payment.domain.repository.PaymentHistoryRepository;
 import com.dropify.payment.dto.response.PaymentHistoryResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,13 +23,21 @@ public class PaymentHistoryService {
 
     @Transactional
     public void save(Long userId, Long orderId, Long amount, LocalDateTime paidAt) {
-        paymentHistoryRepository.save(PaymentHistory.builder()
-                .userId(userId)
-                .orderId(orderId)
-                .amount(amount)
-                .paidAt(paidAt)
-                .build());
-        log.info("결제 내역 저장: userId={}, orderId={}", userId, orderId);
+        if (paymentHistoryRepository.existsByOrderId(orderId)) {
+            log.warn("중복 결제 완료 이벤트 무시: orderId={}", orderId);
+            return;
+        }
+        try {
+            paymentHistoryRepository.save(PaymentHistory.builder()
+                    .userId(userId)
+                    .orderId(orderId)
+                    .amount(amount)
+                    .paidAt(paidAt)
+                    .build());
+            log.info("결제 내역 저장: userId={}, orderId={}", userId, orderId);
+        } catch (DataIntegrityViolationException e) {
+            log.warn("중복 결제 완료 이벤트 무시 (동시 삽입): orderId={}", orderId);
+        }
     }
 
     @Transactional

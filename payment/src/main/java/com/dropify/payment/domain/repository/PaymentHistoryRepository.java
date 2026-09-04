@@ -11,4 +11,6 @@ public interface PaymentHistoryRepository extends JpaRepository<PaymentHistory, 
     List<PaymentHistory> findByUserIdOrderByPaidAtDesc(Long userId);
 
     Optional<PaymentHistory> findByOrderId(Long orderId);
+
+    boolean existsByOrderId(Long orderId);
 }
