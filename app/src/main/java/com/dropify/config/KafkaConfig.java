@@ -29,8 +29,4 @@ public class KafkaConfig {
         return TopicBuilder.name(KafkaTopic.ORDER_CANCELLED).partitions(3).replicas(1).build();
     }
 
-    @Bean
-    public NewTopic stockChangedTopic() {
-        return TopicBuilder.name(KafkaTopic.STOCK_CHANGED).partitions(3).replicas(1).build();
-    }
 }
