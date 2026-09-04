@@ -3,6 +3,7 @@ package com.dropify.payment.service;
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
 import com.dropify.event.OrderCancelledEvent;
+import com.dropify.event.PaymentCancelledEvent;
 import com.dropify.event.PaymentCompletedEvent;
 import com.dropify.event.PaymentFailedEvent;
 import com.dropify.order.exception.PaymentConfirmFailedException;
@@ -111,6 +112,10 @@ public class PaymentService {
             if (payment.cancel()) {
                 order.cancel();
             }
+            eventPublisher.publishEvent(PaymentCancelledEvent.builder()
+                    .orderId(orderId)
+                    .userId(userId)
+                    .build());
         } else {
             throw new BusinessException(ErrorCode.ORDER_NOT_CANCELLABLE);
         }
@@ -210,6 +215,10 @@ public class PaymentService {
                 order.cancel();
                 log.warn("웹훅 외부 결제 취소 처리: orderId={}, status={}", orderId, status);
 
+                eventPublisher.publishEvent(PaymentCancelledEvent.builder()
+                        .orderId(orderId)
+                        .userId(order.getUserId())
+                        .build());
                 eventPublisher.publishEvent(OrderCancelledEvent.builder()
                         .orderId(orderId)
                         .userId(order.getUserId())

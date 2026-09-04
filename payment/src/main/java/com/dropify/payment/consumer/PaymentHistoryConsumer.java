@@ -1,7 +1,7 @@
 package com.dropify.payment.consumer;
 
 import com.dropify.event.KafkaTopic;
-import com.dropify.event.OrderCancelledEvent;
+import com.dropify.event.PaymentCancelledEvent;
 import com.dropify.event.PaymentCompletedEvent;
 import com.dropify.payment.service.PaymentHistoryService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,13 +29,13 @@ public class PaymentHistoryConsumer {
         }
     }
 
-    @KafkaListener(topics = KafkaTopic.ORDER_CANCELLED, groupId = "payment-history-group")
-    public void onOrderCancelled(String message) {
+    @KafkaListener(topics = KafkaTopic.PAYMENT_CANCELLED, groupId = "payment-history-group")
+    public void onPaymentCancelled(String message) {
         try {
-            OrderCancelledEvent event = objectMapper.readValue(message, OrderCancelledEvent.class);
+            PaymentCancelledEvent event = objectMapper.readValue(message, PaymentCancelledEvent.class);
             paymentHistoryService.cancel(event.getOrderId());
         } catch (JsonProcessingException e) {
-            log.error("주문 취소 이벤트 역직렬화 실패: message={}", message, e);
+            log.error("결제 취소 이벤트 역직렬화 실패: message={}", message, e);
         }
     }
 }

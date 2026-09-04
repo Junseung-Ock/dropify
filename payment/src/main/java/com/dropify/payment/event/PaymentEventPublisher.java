@@ -2,6 +2,7 @@ package com.dropify.payment.event;
 
 import com.dropify.event.KafkaTopic;
 import com.dropify.event.OrderCancelledEvent;
+import com.dropify.event.PaymentCancelledEvent;
 import com.dropify.event.PaymentCompletedEvent;
 import com.dropify.event.PaymentFailedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,6 +30,11 @@ public class PaymentEventPublisher {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPaymentFailed(PaymentFailedEvent event) {
         publish(KafkaTopic.PAYMENT_FAILED, event.getOrderId(), event);
+    }
+
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+    public void onPaymentCancelled(PaymentCancelledEvent event) {
+        publish(KafkaTopic.PAYMENT_CANCELLED, event.getOrderId(), event);
     }
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)

@@ -20,6 +20,11 @@ public class KafkaConfig {
     }
 
     @Bean
+    public NewTopic paymentCancelledTopic() {
+        return TopicBuilder.name(KafkaTopic.PAYMENT_CANCELLED).partitions(3).replicas(1).build();
+    }
+
+    @Bean
     public NewTopic orderCancelledTopic() {
         return TopicBuilder.name(KafkaTopic.ORDER_CANCELLED).partitions(3).replicas(1).build();
     }
