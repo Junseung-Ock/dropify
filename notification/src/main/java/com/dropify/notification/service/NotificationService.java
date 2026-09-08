@@ -41,6 +41,17 @@ public class NotificationService {
     }
 
     @Transactional
+    public void savePaymentCancelledNotification(Long userId, Long orderId) {
+        notificationRepository.save(Notification.builder()
+                .userId(userId)
+                .type(NotificationType.PUSH)
+                .title("결제 취소")
+                .message("주문 #" + orderId + " 결제가 취소되었습니다.")
+                .build());
+        log.info("결제 취소 알림 저장: userId={}, orderId={}", userId, orderId);
+    }
+
+    @Transactional
     public void saveOrderCancelledNotification(Long userId, Long orderId) {
         notificationRepository.save(Notification.builder()
                 .userId(userId)
