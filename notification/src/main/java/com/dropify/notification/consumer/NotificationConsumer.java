@@ -2,6 +2,7 @@ package com.dropify.notification.consumer;
 
 import com.dropify.event.KafkaTopic;
 import com.dropify.event.OrderCancelledEvent;
+import com.dropify.event.PaymentCancelledEvent;
 import com.dropify.event.PaymentCompletedEvent;
 import com.dropify.event.PaymentFailedEvent;
 import com.dropify.notification.service.NotificationService;
@@ -37,6 +38,16 @@ public class NotificationConsumer {
             notificationService.savePaymentFailedNotification(event.getUserId(), event.getOrderId());
         } catch (JsonProcessingException e) {
             log.error("결제 실패 이벤트 역직렬화 실패: {}", message, e);
+        }
+    }
+
+    @KafkaListener(topics = KafkaTopic.PAYMENT_CANCELLED, groupId = "notification-group")
+    public void onPaymentCancelled(String message) {
+        try {
+            PaymentCancelledEvent event = objectMapper.readValue(message, PaymentCancelledEvent.class);
+            notificationService.savePaymentCancelledNotification(event.getUserId(), event.getOrderId());
+        } catch (JsonProcessingException e) {
+            log.error("결제 취소 이벤트 역직렬화 실패: {}", message, e);
         }
     }
 
