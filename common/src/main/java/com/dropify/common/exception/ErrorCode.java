@@ -37,7 +37,8 @@ public enum ErrorCode {
     TOSS_API_ERROR(HttpStatus.BAD_GATEWAY, "PAYMENT_003", "Toss API 호출 실패"),
     PAYMENT_AMOUNT_MISMATCH(HttpStatus.BAD_REQUEST, "PAYMENT_004", "결제 금액이 주문 금액과 일치하지 않습니다"),
     PAYMENT_ALREADY_PROCESSED(HttpStatus.CONFLICT, "PAYMENT_005", "이미 처리된 결제입니다"),
-    TOSS_CANCEL_ERROR(HttpStatus.BAD_GATEWAY, "PAYMENT_006", "Toss 결제 취소 실패");
+    TOSS_CANCEL_ERROR(HttpStatus.BAD_GATEWAY, "PAYMENT_006", "Toss 결제 취소 실패"),
+    PAYMENT_HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "PAYMENT_007", "결제 내역을 찾을 수 없습니다");
 
     private final HttpStatus httpStatus;
     private final String code;

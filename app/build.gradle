@@ -2,10 +2,12 @@ apply plugin: 'org.springframework.boot'
 
 dependencies {
     implementation project(':common')
+    implementation project(':event')
     implementation project(':web')
     implementation project(':user')
     implementation project(':notification')
     implementation 'org.springframework:spring-tx'
+    implementation 'org.springframework.kafka:spring-kafka'
     implementation 'org.springframework.boot:spring-boot-starter'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-security'
