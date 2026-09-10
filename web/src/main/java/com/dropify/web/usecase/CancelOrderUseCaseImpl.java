@@ -4,6 +4,7 @@ import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
 import com.dropify.event.OrderCancelledEvent;
 import com.dropify.event.PaymentCancelledEvent;
+import com.dropify.event.PaymentFailedEvent;
 import com.dropify.order.domain.entity.Order;
 import com.dropify.order.domain.entity.OrderStatus;
 import com.dropify.order.service.OrderService;
@@ -29,6 +30,10 @@ public class CancelOrderUseCaseImpl {
 
         if (order.getStatus() == OrderStatus.PENDING) {
             paymentService.failPendingPayment(orderId);
+            eventPublisher.publishEvent(PaymentFailedEvent.builder()
+                    .orderId(orderId)
+                    .userId(userId)
+                    .build());
         } else if (order.getStatus() == OrderStatus.PAID) {
             paymentService.cancelPaidPayment(orderId);
             eventPublisher.publishEvent(PaymentCancelledEvent.builder()
@@ -57,6 +62,10 @@ public class CancelOrderUseCaseImpl {
             orderService.cancelOrder(orderId);
             rollbackStock(orderId);
 
+            eventPublisher.publishEvent(PaymentFailedEvent.builder()
+                    .orderId(orderId)
+                    .userId(userId)
+                    .build());
             eventPublisher.publishEvent(OrderCancelledEvent.builder()
                     .orderId(orderId)
                     .userId(userId)
