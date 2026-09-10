@@ -1,5 +1,6 @@
 package com.dropify.web.usecase;
 
+import com.dropify.event.OrderCancelledEvent;
 import com.dropify.event.PaymentCompletedEvent;
 import com.dropify.event.PaymentFailedEvent;
 import com.dropify.order.service.OrderService;
@@ -44,6 +45,10 @@ public class PaymentConfirmUseCaseImpl {
                     stockService.rollbackStock(item.getProductId(), item.getQuantity()));
 
             eventPublisher.publishEvent(PaymentFailedEvent.builder()
+                    .orderId(request.getOrderId())
+                    .userId(userId)
+                    .build());
+            eventPublisher.publishEvent(OrderCancelledEvent.builder()
                     .orderId(request.getOrderId())
                     .userId(userId)
                     .build());
