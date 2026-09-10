@@ -1,4 +1,4 @@
-package com.dropify.order.exception;
+package com.dropify.payment.exception;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;

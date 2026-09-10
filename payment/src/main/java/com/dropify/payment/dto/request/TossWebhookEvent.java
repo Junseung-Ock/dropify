@@ -1,4 +1,4 @@
-package com.dropify.order.dto.request;
+package com.dropify.payment.dto.request;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

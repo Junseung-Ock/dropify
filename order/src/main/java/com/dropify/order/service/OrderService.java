@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -39,5 +40,30 @@ public class OrderService {
         return orderRepository.findById(orderId)
                 .map(Order::getOrderItems)
                 .orElse(List.of());
+    }
+
+    @Transactional(readOnly = true)
+    public Order getOrderByIdAndUserId(Long orderId, Long userId) {
+        return orderRepository.findByIdAndUserId(orderId, userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<Order> findOrderById(Long orderId) {
+        return orderRepository.findById(orderId);
+    }
+
+    @Transactional
+    public void markAsPaid(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        order.markAsPaid();
+    }
+
+    @Transactional
+    public void cancelOrder(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+        order.cancel();
     }
 }

@@ -2,29 +2,21 @@ package com.dropify.payment.service;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
-import com.dropify.event.OrderCancelledEvent;
-import com.dropify.event.PaymentCancelledEvent;
-import com.dropify.event.PaymentCompletedEvent;
-import com.dropify.event.PaymentFailedEvent;
-import com.dropify.order.exception.PaymentConfirmFailedException;
-import com.dropify.order.domain.entity.Order;
-import com.dropify.order.domain.entity.OrderStatus;
-import com.dropify.order.domain.repository.OrderRepository;
-import com.dropify.order.dto.request.PaymentConfirmRequest;
-import com.dropify.order.dto.request.TossWebhookEvent;
-import com.dropify.order.dto.response.PaymentConfirmResponse;
 import com.dropify.payment.client.TossPaymentClient;
 import com.dropify.payment.config.TossPaymentProperties;
+import com.dropify.payment.domain.WebhookAction;
+import com.dropify.payment.domain.WebhookResult;
 import com.dropify.payment.domain.entity.Payment;
 import com.dropify.payment.domain.entity.PaymentStatus;
 import com.dropify.payment.domain.repository.PaymentRepository;
+import com.dropify.payment.dto.request.PaymentConfirmRequest;
+import com.dropify.payment.dto.request.TossWebhookEvent;
+import com.dropify.payment.dto.response.PaymentConfirmResponse;
+import com.dropify.payment.exception.PaymentConfirmFailedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
 
 @Slf4j
 @Service
@@ -32,10 +24,8 @@ import java.util.Optional;
 public class PaymentService {
 
     private final PaymentRepository paymentRepository;
-    private final OrderRepository orderRepository;
     private final TossPaymentClient tossPaymentClient;
     private final TossPaymentProperties tossPaymentProperties;
-    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public void createPendingPayment(Long orderId, Long amount) {
@@ -45,7 +35,7 @@ public class PaymentService {
                 .build());
     }
 
-    // Toss API 실패 시에도 payment.fail() + order.cancel()이 커밋되어야 하므로 noRollbackFor 설정
+    // Toss API 실패 시에도 payment.fail()이 커밋되어야 하므로 noRollbackFor 설정
     @Transactional(noRollbackFor = BusinessException.class)
     public PaymentConfirmResponse confirm(Long userId, PaymentConfirmRequest request) {
         Payment payment = paymentRepository.findByOrderId(request.getOrderId())
@@ -59,9 +49,6 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.PAYMENT_AMOUNT_MISMATCH);
         }
 
-        Order order = orderRepository.findByIdAndUserId(request.getOrderId(), userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
-
         try {
             var tossResponse = tossPaymentClient.confirm(
                     request.getPaymentKey(),
@@ -69,27 +56,12 @@ public class PaymentService {
                     request.getAmount()
             );
             payment.complete(tossResponse.getPaymentKey());
-            order.markAsPaid();
-            log.info("결제 승인 완료: orderId={}", order.getId());
-
-            eventPublisher.publishEvent(PaymentCompletedEvent.builder()
-                    .orderId(order.getId())
-                    .userId(userId)
-                    .amount(payment.getAmount())
-                    .paidAt(payment.getPaidAt())
-                    .build());
-
-            return new PaymentConfirmResponse(order, payment.getAmount(), payment.getPaidAt());
+            log.info("결제 승인 완료: orderId={}", request.getOrderId());
+            return new PaymentConfirmResponse(
+                    request.getOrderId(), "PAID", payment.getAmount(), payment.getPaidAt());
         } catch (BusinessException e) {
             if (payment.fail()) {
-                order.cancel();
-                log.warn("결제 실패 처리 완료: orderId={}", order.getId());
-
-                eventPublisher.publishEvent(PaymentFailedEvent.builder()
-                        .orderId(order.getId())
-                        .userId(userId)
-                        .build());
-
+                log.warn("결제 실패 처리 완료: orderId={}", request.getOrderId());
                 throw new PaymentConfirmFailedException(e.getErrorCode());
             }
             throw e;
@@ -97,74 +69,49 @@ public class PaymentService {
     }
 
     @Transactional
-    public void cancelOrder(Long userId, Long orderId) {
-        Order order = orderRepository.findByIdAndUserId(orderId, userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+    public void failPendingPayment(Long orderId) {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+        payment.fail();
+        log.info("PENDING 결제 실패 처리: orderId={}", orderId);
+    }
 
-        if (order.getStatus() == OrderStatus.PENDING) {
-            if (payment.fail()) {
-                order.cancel();
-            }
-        } else if (order.getStatus() == OrderStatus.PAID) {
-            tossPaymentClient.cancel(payment.getTossPaymentKey(), "사용자 취소");
-            if (payment.cancel()) {
-                order.cancel();
-            }
-            eventPublisher.publishEvent(PaymentCancelledEvent.builder()
-                    .orderId(orderId)
-                    .userId(userId)
-                    .build());
-        } else {
-            throw new BusinessException(ErrorCode.ORDER_NOT_CANCELLABLE);
-        }
-
-        log.info("주문 취소 완료: orderId={}, status={}", orderId, order.getStatus());
-        eventPublisher.publishEvent(OrderCancelledEvent.builder()
-                .orderId(orderId)
-                .userId(userId)
-                .build());
+    @Transactional
+    public void cancelPaidPayment(Long orderId) {
+        Payment payment = paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+        tossPaymentClient.cancel(payment.getTossPaymentKey(), "사용자 취소");
+        payment.cancel();
+        log.info("결제 취소 완료: orderId={}", orderId);
     }
 
     // 결제창 취소 시 호출 — PENDING이 아니면 무시, 실제 취소 여부를 반환
     @Transactional
-    public boolean cancelByUser(Long userId, Long orderId) {
+    public boolean tryFailPendingPayment(Long orderId) {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
-
-        Order order = orderRepository.findByIdAndUserId(orderId, userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
         if (payment.getStatus() != PaymentStatus.PENDING) {
             return false;
         }
 
         if (payment.fail()) {
-            order.cancel();
             log.info("결제창 취소 처리 완료: orderId={}", orderId);
-
-            eventPublisher.publishEvent(OrderCancelledEvent.builder()
-                    .orderId(orderId)
-                    .userId(userId)
-                    .build());
-
             return true;
         }
 
         return false;
     }
 
-    // 재고 롤백이 필요한 경우 orderId를 반환, 불필요하면 empty
     @Transactional
-    public Optional<Long> handleWebhook(TossWebhookEvent event) {
+    public WebhookResult handleWebhook(TossWebhookEvent event) {
         if (!tossPaymentProperties.getWebhookSecret().equals(event.getSecret())) {
             log.warn("웹훅 시크릿 불일치: 무시");
-            return Optional.empty();
+            return WebhookResult.ignored();
         }
 
         if (!"PAYMENT_STATUS_CHANGED".equals(event.getType())) {
-            return Optional.empty();
+            return WebhookResult.ignored();
         }
 
         Long orderId;
@@ -173,61 +120,32 @@ public class PaymentService {
             orderId = Long.parseLong(rawOrderId);
         } catch (NumberFormatException e) {
             log.warn("웹훅 orderId 파싱 실패: {}", event.getOrderId());
-            return Optional.empty();
+            return WebhookResult.ignored();
         }
 
         Payment payment = paymentRepository.findByOrderIdWithLock(orderId).orElse(null);
-        if (payment == null) return Optional.empty();
-
-        Order order = orderRepository.findById(orderId).orElse(null);
-        if (order == null) return Optional.empty();
+        if (payment == null) return WebhookResult.ignored();
 
         String status = event.getStatus();
 
         if ("DONE".equals(status) && payment.getStatus() == PaymentStatus.PENDING) {
             if (payment.complete(event.getPaymentKey())) {
-                order.markAsPaid();
                 log.info("웹훅 결제 완료 처리: orderId={}", orderId);
-
-                eventPublisher.publishEvent(PaymentCompletedEvent.builder()
-                        .orderId(orderId)
-                        .userId(order.getUserId())
-                        .amount(payment.getAmount())
-                        .paidAt(payment.getPaidAt())
-                        .build());
+                return WebhookResult.completed(orderId, payment.getAmount(), payment.getPaidAt());
             }
-            return Optional.empty();
         } else if (("ABORTED".equals(status) || "EXPIRED".equals(status) || "CANCELED".equals(status))
                 && payment.getStatus() == PaymentStatus.PENDING) {
             if (payment.fail()) {
-                order.cancel();
                 log.warn("웹훅 결제 실패 처리: orderId={}, status={}", orderId, status);
-
-                eventPublisher.publishEvent(PaymentFailedEvent.builder()
-                        .orderId(orderId)
-                        .userId(order.getUserId())
-                        .build());
-
-                return Optional.of(orderId);
+                return WebhookResult.paymentFailed(orderId);
             }
         } else if ("CANCELED".equals(status) && payment.getStatus() == PaymentStatus.COMPLETED) {
             if (payment.cancel()) {
-                order.cancel();
                 log.warn("웹훅 외부 결제 취소 처리: orderId={}, status={}", orderId, status);
-
-                eventPublisher.publishEvent(PaymentCancelledEvent.builder()
-                        .orderId(orderId)
-                        .userId(order.getUserId())
-                        .build());
-                eventPublisher.publishEvent(OrderCancelledEvent.builder()
-                        .orderId(orderId)
-                        .userId(order.getUserId())
-                        .build());
-
-                return Optional.of(orderId);
+                return WebhookResult.externalCancelled(orderId);
             }
         }
 
-        return Optional.empty();
+        return WebhookResult.ignored();
     }
 }
