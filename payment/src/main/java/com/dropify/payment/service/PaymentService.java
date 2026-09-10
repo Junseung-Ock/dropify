@@ -70,18 +70,28 @@ public class PaymentService {
 
     @Transactional
     public void failPendingPayment(Long orderId) {
-        Payment payment = paymentRepository.findByOrderId(orderId)
+        Payment payment = paymentRepository.findByOrderIdWithLock(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
-        payment.fail();
+        if (payment.getStatus() != PaymentStatus.PENDING) {
+            throw new BusinessException(ErrorCode.PAYMENT_ALREADY_PROCESSED);
+        }
+        if (!payment.fail()) {
+            throw new BusinessException(ErrorCode.PAYMENT_ALREADY_PROCESSED);
+        }
         log.info("PENDING 결제 실패 처리: orderId={}", orderId);
     }
 
     @Transactional
     public void cancelPaidPayment(Long orderId) {
-        Payment payment = paymentRepository.findByOrderId(orderId)
+        Payment payment = paymentRepository.findByOrderIdWithLock(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PAYMENT_NOT_FOUND));
+        if (payment.getStatus() != PaymentStatus.COMPLETED) {
+            throw new BusinessException(ErrorCode.PAYMENT_ALREADY_PROCESSED);
+        }
         tossPaymentClient.cancel(payment.getTossPaymentKey(), "사용자 취소");
-        payment.cancel();
+        if (!payment.cancel()) {
+            throw new BusinessException(ErrorCode.PAYMENT_ALREADY_PROCESSED);
+        }
         log.info("결제 취소 완료: orderId={}", orderId);
     }
 
