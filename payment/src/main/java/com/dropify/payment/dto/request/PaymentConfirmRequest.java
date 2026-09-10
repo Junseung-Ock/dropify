@@ -1,4 +1,4 @@
-package com.dropify.order.dto.request;
+package com.dropify.payment.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
