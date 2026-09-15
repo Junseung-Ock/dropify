@@ -6,6 +6,7 @@ import com.dropify.web.service.IdempotencyService;
 import com.dropify.product.service.StockService;
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,7 @@ public class PlaceOrderUseCaseImpl {
     private final PlaceOrderProcessor processor;
     private final IdempotencyService idempotencyService;
     private final StockService stockService;
+    private final MeterRegistry meterRegistry;
 
     public PlaceOrderResponse execute(Long userId, PlaceOrderRequest request, String idempotencyKey) {
         Optional<PlaceOrderResponse> cached = idempotencyService.get(userId, idempotencyKey);
@@ -32,6 +34,7 @@ public class PlaceOrderUseCaseImpl {
             stockService.checkRedisStock(request.getProductId(), request.getQuantity());
             PlaceOrderResponse response = processor.process(userId, request);
             idempotencyService.complete(userId, idempotencyKey, response);
+            meterRegistry.counter("dropify.order.placed").increment();
             return response;
         } catch (RuntimeException e) {
             idempotencyService.release(userId, idempotencyKey);

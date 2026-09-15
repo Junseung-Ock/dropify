@@ -2,6 +2,7 @@ package com.dropify.common.lock;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -26,6 +27,7 @@ import java.lang.reflect.Method;
 public class DistributedLockAspect {
 
     private final RedissonClient redissonClient;
+    private final MeterRegistry meterRegistry;
     private final ExpressionParser parser = new SpelExpressionParser();
 
     @Around("@annotation(distributedLock)")
@@ -33,6 +35,7 @@ public class DistributedLockAspect {
         String lockKey = resolveKey(pjp, distributedLock.key());
         RLock lock = redissonClient.getLock(lockKey);
 
+        meterRegistry.counter("dropify.lock.acquire.total").increment();
         boolean acquired = lock.tryLock(
                 distributedLock.waitTime(),
                 distributedLock.leaseTime(),
@@ -41,6 +44,7 @@ public class DistributedLockAspect {
 
         if (!acquired) {
             log.warn("분산 락 획득 실패: key={}", lockKey);
+            meterRegistry.counter("dropify.lock.acquire.failure").increment();
             throw new BusinessException(ErrorCode.CONCURRENT_ORDER);
         }
 
