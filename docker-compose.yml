@@ -177,7 +177,8 @@ services:
     image: rogerrum/alertmanager-discord:1.0.4
     container_name: dropify-alertmanager-discord
     environment:
-      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL}
+      DISCORD_WEBHOOK: ${DISCORD_WEBHOOK_URL}
+      DISCORD_USERNAME: Dropify Alertmanager
     depends_on:
       alertmanager:
         condition: service_healthy
