@@ -21,7 +21,7 @@ public class PaymentHistoryResponse {
     @Schema(example = "2024-01-01T10:00:00")
     private LocalDateTime paidAt;
 
-    @Schema(example = "PAID")
+    @Schema(example = "COMPLETED")
     private PaymentHistoryStatus status;
 
     public static PaymentHistoryResponse from(PaymentHistory history) {

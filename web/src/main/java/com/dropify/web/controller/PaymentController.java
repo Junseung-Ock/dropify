@@ -43,9 +43,10 @@ public class PaymentController {
     }
 
     @Operation(summary = "결제 실패 처리")
-    @ApiResponses(
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 주문 ID 형식 (COMMON_001)")
-    )
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "잘못된 주문 ID 형식 (COMMON_001)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "주문 없음 (ORDER_NOT_FOUND)")
+    })
     @GetMapping("/fail")
     public ApiResponse<Void> fail(
             @AuthenticationPrincipal UserDetailsImpl userDetails,
@@ -62,6 +63,9 @@ public class PaymentController {
     }
 
     @Operation(summary = "토스 웹훅 수신", security = {})
+    @ApiResponses(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "주문 없음 (ORDER_NOT_FOUND)")
+    )
     @PostMapping("/webhook")
     public ApiResponse<Void> webhook(@RequestBody TossWebhookEvent event) {
         handleWebhookUseCase.handle(event);
