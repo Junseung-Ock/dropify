@@ -19,6 +19,7 @@ import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -57,13 +58,21 @@ public class PaymentEventPublisher {
             if (traceId != null) {
                 record.headers().add(new RecordHeader("traceId", traceId.getBytes(StandardCharsets.UTF_8)));
             }
+            Map<String, String> mdcContext = MDC.getCopyOfContextMap();
             kafkaTemplate.send(record)
                     .whenComplete((result, ex) -> {
-                        if (ex != null) {
-                            log.error("[PRODUCE] Kafka 전송 실패: topic={}, key={}", topic, key, ex);
-                            meterRegistry.counter("dropify.kafka.publish.failure", "topic", topic).increment();
-                        } else {
-                            log.info("[PRODUCE] topic={}, key={}", topic, key);
+                        Map<String, String> previous = MDC.getCopyOfContextMap();
+                        if (mdcContext != null) MDC.setContextMap(mdcContext);
+                        try {
+                            if (ex != null) {
+                                log.error("[PRODUCE] Kafka 전송 실패: topic={}, key={}", topic, key, ex);
+                                meterRegistry.counter("dropify.kafka.publish.failure", "topic", topic).increment();
+                            } else {
+                                log.info("[PRODUCE] topic={}, key={}", topic, key);
+                            }
+                        } finally {
+                            if (previous != null) MDC.setContextMap(previous);
+                            else MDC.clear();
                         }
                     });
         } catch (JsonProcessingException e) {
