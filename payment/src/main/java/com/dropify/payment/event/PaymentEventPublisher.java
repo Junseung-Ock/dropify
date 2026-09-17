@@ -10,10 +10,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.kafka.clients.producer.ProducerRecord;
+import org.apache.kafka.common.header.internals.RecordHeader;
+import org.slf4j.MDC;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
+
+import java.nio.charset.StandardCharsets;
 
 @Slf4j
 @Component
@@ -46,11 +51,19 @@ public class PaymentEventPublisher {
 
     private void publish(String topic, Long key, Object event) {
         try {
-            kafkaTemplate.send(topic, key.toString(), objectMapper.writeValueAsString(event))
+            String json = objectMapper.writeValueAsString(event);
+            ProducerRecord<String, String> record = new ProducerRecord<>(topic, key.toString(), json);
+            String traceId = MDC.get("traceId");
+            if (traceId != null) {
+                record.headers().add(new RecordHeader("traceId", traceId.getBytes(StandardCharsets.UTF_8)));
+            }
+            kafkaTemplate.send(record)
                     .whenComplete((result, ex) -> {
                         if (ex != null) {
-                            log.error("Kafka 전송 실패: topic={}", topic, ex);
+                            log.error("[PRODUCE] Kafka 전송 실패: topic={}, key={}", topic, key, ex);
                             meterRegistry.counter("dropify.kafka.publish.failure", "topic", topic).increment();
+                        } else {
+                            log.info("[PRODUCE] topic={}, key={}", topic, key);
                         }
                     });
         } catch (JsonProcessingException e) {
