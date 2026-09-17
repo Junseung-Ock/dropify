@@ -1,6 +1,6 @@
 dependencies {
     implementation project(':common')
-    implementation 'org.springdoc:springdoc-openapi-starter-common:2.5.0'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
     implementation project(':event')
     implementation project(':user')
     implementation project(':product')
