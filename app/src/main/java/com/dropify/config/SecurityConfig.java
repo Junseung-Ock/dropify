@@ -5,6 +5,7 @@ import com.dropify.user.security.CustomAuthenticationEntryPoint;
 import com.dropify.user.security.JwtAuthenticationFilter;
 import com.dropify.user.security.JwtTokenProvider;
 import com.dropify.user.security.UserDetailsServiceImpl;
+import com.dropify.web.filter.MdcTraceFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -29,6 +30,7 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
     private final CustomAccessDeniedHandler customAccessDeniedHandler;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+    private final MdcTraceFilter mdcTraceFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -59,7 +61,8 @@ public class SecurityConfig {
                         .accessDeniedHandler(customAccessDeniedHandler))
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtTokenProvider, userDetailsService),
-                        UsernamePasswordAuthenticationFilter.class);
+                        UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(mdcTraceFilter, JwtAuthenticationFilter.class);
 
         return http.build();
     }
