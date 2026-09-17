@@ -36,6 +36,7 @@ public class AuthController {
 
     @Operation(summary = "로그인", security = {})
     @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "유효하지 않은 입력값 (COMMON_001)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "잘못된 비밀번호 (USER_003)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "존재하지 않는 사용자 (USER_001)")
     })
@@ -45,15 +46,19 @@ public class AuthController {
     }
 
     @Operation(summary = "토큰 재발급", security = {})
-    @ApiResponses(
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "유효하지 않은 입력값 (COMMON_001)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "401", description = "만료된 토큰 (USER_005)")
-    )
+    })
     @PostMapping("/reissue")
     public ApiResponse<TokenResponse> reissue(@RequestBody @Valid ReissueRequest request) {
         return ApiResponse.ok(authService.reissue(request));
     }
 
     @Operation(summary = "로그아웃", security = {})
+    @ApiResponses(
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "유효하지 않은 입력값 (COMMON_001)")
+    )
     @PostMapping("/logout")
     public ApiResponse<Void> logout(@RequestBody @Valid ReissueRequest request) {
         authService.logout(request);

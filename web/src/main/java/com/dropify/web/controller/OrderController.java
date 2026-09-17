@@ -34,6 +34,7 @@ public class OrderController {
 
     @Operation(summary = "주문 생성", description = "idempotency-key 헤더 필수")
     @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "유효하지 않은 입력값 (COMMON_001)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "상품 없음 (PRODUCT_001)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "재고 부족 (PRODUCT_002) / 동시 주문 초과 (ORDER_003)")
     })

@@ -30,7 +30,7 @@ public class PaymentController {
 
     @Operation(summary = "결제 승인")
     @ApiResponses({
-            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "결제 금액 불일치 (PAYMENT_004)"),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "유효하지 않은 입력값 (COMMON_001) / 결제 금액 불일치 (PAYMENT_004)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "409", description = "이미 처리된 결제 (PAYMENT_005)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "502", description = "Toss API 호출 실패 (PAYMENT_003)")
     })
