@@ -7,6 +7,7 @@ import com.dropify.event.PaymentCompletedEvent;
 import com.dropify.event.PaymentFailedEvent;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -21,6 +22,7 @@ public class PaymentEventPublisher {
 
     private final KafkaTemplate<String, String> kafkaTemplate;
     private final ObjectMapper objectMapper;
+    private final MeterRegistry meterRegistry;
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onPaymentCompleted(PaymentCompletedEvent event) {
@@ -44,9 +46,16 @@ public class PaymentEventPublisher {
 
     private void publish(String topic, Long key, Object event) {
         try {
-            kafkaTemplate.send(topic, key.toString(), objectMapper.writeValueAsString(event));
+            kafkaTemplate.send(topic, key.toString(), objectMapper.writeValueAsString(event))
+                    .whenComplete((result, ex) -> {
+                        if (ex != null) {
+                            log.error("Kafka 전송 실패: topic={}", topic, ex);
+                            meterRegistry.counter("dropify.kafka.publish.failure", "topic", topic).increment();
+                        }
+                    });
         } catch (JsonProcessingException e) {
             log.error("이벤트 직렬화 실패: topic={}", topic, e);
+            meterRegistry.counter("dropify.kafka.publish.failure", "topic", topic).increment();
         }
     }
 }

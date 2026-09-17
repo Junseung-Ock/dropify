@@ -16,12 +16,8 @@ route:
 receivers:
   - name: "discord"
     webhook_configs:
-      - url: "${DISCORD_WEBHOOK_URL}"
+      - url: "http://alertmanager-discord:9094"
         send_resolved: true
-        http_config: {}
-        # Discord 웹훅은 Alertmanager JSON 포맷을 직접 파싱하지 않습니다.
-        # 실제 운영 시 alertmanager-discord 프록시를 사용하거나
-        # 아래처럼 max_alerts를 설정해 대량 알림을 방지하세요.
         max_alerts: 5
 
 inhibit_rules:

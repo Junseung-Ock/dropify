@@ -1,0 +1,47 @@
+{
+  "uid": "dropify-redis",
+  "title": "Redis",
+  "tags": ["dropify"],
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "refresh": "10s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "캐시 적중률",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(cache_gets_total{application=\"dropify\", result=\"hit\"}[5m]) / rate(cache_gets_total{application=\"dropify\"}[5m])",
+          "legendFormat": "Hit Rate"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "percentunit", "max": 1 }
+      }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "캐시 Hit / Miss 건수",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(cache_gets_total{application=\"dropify\", result=\"hit\"}[1m])",
+          "legendFormat": "Hit"
+        },
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "rate(cache_gets_total{application=\"dropify\", result=\"miss\"}[1m])",
+          "legendFormat": "Miss"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqps" }
+      }
+    }
+  ]
+}

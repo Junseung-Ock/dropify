@@ -80,6 +80,45 @@ groups:
             Lag이 {{ $value }} 으로 위험 수준(5000)을 초과했습니다.
             메시지 처리가 중단되었을 가능성이 있습니다.
 
+  - name: dropify_lock_alerts
+    interval: 30s
+    rules:
+      # 분산 락 획득 실패율이 10%를 초과할 때
+      - alert: LockAcquireFailureHigh
+        expr: |
+          (
+            rate(dropify_lock_acquire_failure_total{application="dropify"}[5m])
+            /
+            rate(dropify_lock_acquire_total{application="dropify"}[5m])
+          ) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+          service: lock
+        annotations:
+          summary: "분산 락 획득 실패율 임계치 초과"
+          description: |
+            분산 락 획득 실패율이 {{ $value | humanizePercentage }} 로
+            임계치(10%)를 2분 이상 초과했습니다.
+            Instance: {{ $labels.instance }}
+
+  - name: dropify_kafka_producer_alerts
+    interval: 30s
+    rules:
+      # Kafka 프로듀서 전송 실패가 1건 이상 발생할 때
+      - alert: KafkaPublishFailure
+        expr: |
+          increase(dropify_kafka_publish_failure_total{application="dropify"}[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          service: kafka
+        annotations:
+          summary: "Kafka 프로듀서 전송 실패 감지"
+          description: |
+            토픽 {{ $labels.topic }} 으로의 메시지 전송에 실패했습니다.
+            Instance: {{ $labels.instance }}
+
   - name: dropify_infra_alerts
     interval: 30s
     rules:
