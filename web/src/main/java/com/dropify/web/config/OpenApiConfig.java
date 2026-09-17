@@ -1,4 +1,4 @@
-package com.dropify.common.config;
+package com.dropify.web.config;
 
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
