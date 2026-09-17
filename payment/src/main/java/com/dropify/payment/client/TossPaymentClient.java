@@ -2,6 +2,7 @@ package com.dropify.payment.client;
 
 import com.dropify.common.exception.BusinessException;
 import com.dropify.common.exception.ErrorCode;
+import com.dropify.common.util.LogMasker;
 import com.dropify.payment.dto.request.TossCancelRequest;
 import com.dropify.payment.dto.request.TossConfirmRequest;
 import com.dropify.payment.dto.response.TossPaymentResponse;
@@ -22,14 +23,14 @@ public class TossPaymentClient {
     private final MeterRegistry meterRegistry;
 
     public void cancel(String paymentKey, String cancelReason) {
-        log.debug("토스 결제 취소 요청: paymentKey={}", paymentKey);
+        log.info("토스 결제 취소 요청: paymentKey={}", LogMasker.maskPaymentKey(paymentKey));
         tossWebClient.post()
                 .uri("/v1/payments/{paymentKey}/cancel", paymentKey)
                 .bodyValue(new TossCancelRequest(cancelReason))
                 .retrieve()
                 .onStatus(status -> status.isError(), response ->
                         response.bodyToMono(String.class).flatMap(body -> {
-                            log.warn("토스 결제 취소 실패: paymentKey={}, body={}", paymentKey, body);
+                            log.warn("토스 결제 취소 실패: paymentKey={}, body={}", LogMasker.maskPaymentKey(paymentKey), body);
                             return Mono.error(new BusinessException(ErrorCode.TOSS_CANCEL_ERROR));
                         })
                 )
@@ -38,7 +39,7 @@ public class TossPaymentClient {
     }
 
     public TossPaymentResponse confirm(String paymentKey, String orderId, Long amount) {
-        log.debug("토스 결제 승인 요청: paymentKey={}, orderId={}", paymentKey, orderId);
+        log.info("토스 결제 승인 요청: paymentKey={}, orderId={}", LogMasker.maskPaymentKey(paymentKey), orderId);
         Timer.Sample sample = Timer.start(meterRegistry);
         try {
             return tossWebClient.post()
