@@ -47,9 +47,10 @@ public class AdminProductController {
     }
 
     @Operation(summary = "상품 상태 변경")
-    @ApiResponses(
+    @ApiResponses({
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "400", description = "유효하지 않은 상태값 (COMMON_001)"),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "404", description = "상품 없음 (PRODUCT_001)")
-    )
+    })
     @PatchMapping("/{id}/status")
     public ApiResponse<Void> changeStatus(
             @PathVariable Long id,
