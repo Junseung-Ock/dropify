@@ -13,7 +13,7 @@ public class ProductSearchRequest {
     @Schema(example = "티셔츠")
     private String keyword;
 
-    @Schema(example = "ON_SALE")
+    @Schema(example = "ACTIVE")
     private ProductStatus status;
 
     @Schema(example = "10000")

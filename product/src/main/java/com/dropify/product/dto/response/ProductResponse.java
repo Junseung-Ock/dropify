@@ -30,7 +30,7 @@ public class ProductResponse {
     @Schema(example = "100")
     private int stockQuantity;
 
-    @Schema(example = "ON_SALE")
+    @Schema(example = "ACTIVE")
     private ProductStatus status;
 
     @Schema(example = "2024-01-01T10:00:00")
