@@ -4,13 +4,19 @@ import com.dropify.order.domain.entity.Order;
 import com.dropify.order.domain.entity.OrderStatus;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Getter;
 
 @Getter
 public class PlaceOrderResponse {
 
+    @Schema(example = "1")
     private final Long orderId;
+
+    @Schema(example = "PENDING")
     private final OrderStatus status;
+
+    @Schema(example = "29800")
     private final Long totalAmount;
 
     public PlaceOrderResponse(Order order) {
