@@ -56,6 +56,7 @@ public class TossPaymentClient {
         } finally {
             sample.stop(Timer.builder("dropify.toss.api.duration")
                     .tag("operation", "confirm")
+                    .publishPercentileHistogram()
                     .register(meterRegistry));
         }
     }
